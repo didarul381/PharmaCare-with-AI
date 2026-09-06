@@ -177,8 +177,8 @@ class ReportController extends Controller
             });
 
         // 7. Customer Receivables & Aging Ledgers
-        $dueCustomers = Customer::where('credit_balance', '>', 0)
-            ->orderByDesc('credit_balance')
+        $dueCustomers = Customer::where('total_credit', '>', 0)
+            ->orderByDesc('total_credit')
             ->limit(30)
             ->get()
             ->map(function ($cust) {
@@ -186,13 +186,13 @@ class ReportController extends Controller
                     'id' => $cust->id,
                     'name' => $cust->name,
                     'phone' => $cust->phone ?? 'N/A',
-                    'credit_balance' => (float) $cust->credit_balance,
+                    'credit_balance' => (float) $cust->total_credit,
                     'credit_limit' => (float) $cust->credit_limit,
                     'updated_at' => $cust->updated_at->format('d M Y'),
                 ];
             });
 
-        $totalReceivablesOutstanding = (float) Customer::sum('credit_balance');
+        $totalReceivablesOutstanding = (float) Customer::sum('total_credit');
 
         // 8. Staff / Cashier Performance
         $staffPerformance = User::withCount(['sales as sales_count' => function ($q) use ($startDate, $endDate) {
@@ -369,8 +369,8 @@ class ReportController extends Controller
 
                 case 'customer_dues':
                     fputcsv($handle, ['Customer ID', 'Customer Name', 'Phone Number', 'Address', 'Outstanding Due Balance', 'Credit Limit', 'Last Updated']);
-                    Customer::where('credit_balance', '>', 0)
-                        ->orderByDesc('credit_balance')
+                    Customer::where('total_credit', '>', 0)
+                        ->orderByDesc('total_credit')
                         ->chunk(100, function ($customers) use ($handle) {
                             foreach ($customers as $c) {
                                 fputcsv($handle, [
@@ -378,7 +378,7 @@ class ReportController extends Controller
                                     $c->name,
                                     $c->phone ?? '',
                                     $c->address ?? '',
-                                    $c->credit_balance,
+                                    $c->total_credit,
                                     $c->credit_limit,
                                     $c->updated_at->format('Y-m-d H:i:s'),
                                 ]);

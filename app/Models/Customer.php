@@ -26,6 +26,15 @@ class Customer extends Model
         'loyalty_points' => 'integer',
     ];
 
+    protected $appends = [
+        'credit_balance',
+    ];
+
+    public function getCreditBalanceAttribute(): float
+    {
+        return (float) ($this->total_credit ?? 0);
+    }
+
     public function sales(): HasMany
     {
         return $this->hasMany(Sale::class);
