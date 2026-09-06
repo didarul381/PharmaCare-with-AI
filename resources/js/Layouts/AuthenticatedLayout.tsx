@@ -97,6 +97,7 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
                 return ['inventory_manager', 'pharmacist'].includes(currentUserRole);
             case 'audit-logs':
                 return ['pharmacist', 'inventory_manager'].includes(currentUserRole);
+            case 'users':
             case 'settings':
                 return false;
             default:
@@ -149,6 +150,12 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
             label: 'Audit & Compliance',
             href: '/audit-logs',
             icon: History,
+        },
+        {
+            key: 'users',
+            label: 'Staff & Roles',
+            href: '/users',
+            icon: Users,
         },
         {
             key: 'settings',
@@ -289,43 +296,81 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
                             <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", userMenuOpen && "rotate-180")} />
                         </button>
 
-                        {/* Role Switcher Popover */}
+                        {/* Role Switcher & User Actions Popover */}
                         {userMenuOpen && (
-                            <div className="absolute bottom-16 left-3 right-3 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-bottom-2">
-                                <div className="px-2 py-1.5 border-b border-slate-800 mb-1 flex items-center justify-between">
-                                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
-                                        <Shield className="w-3 h-3 text-cyan-400" />
-                                        Switch Active Role (RBAC)
-                                    </span>
+                            <div className="absolute bottom-16 left-3 right-3 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-bottom-2 space-y-2">
+                                {/* Navigation Shortcut Links */}
+                                <div className="space-y-1 pb-1.5 border-b border-slate-800">
+                                    <Link
+                                        href="/profile"
+                                        onClick={() => setUserMenuOpen(false)}
+                                        className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition"
+                                    >
+                                        <UserCircle className="w-4 h-4 text-emerald-400" />
+                                        <span>Edit My Profile & Security</span>
+                                    </Link>
+
+                                    {currentUserRole === 'super_admin' && (
+                                        <Link
+                                            href="/users"
+                                            onClick={() => setUserMenuOpen(false)}
+                                            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition"
+                                        >
+                                            <Users className="w-4 h-4 text-purple-400" />
+                                            <span>Manage Staff & Roles</span>
+                                        </Link>
+                                    )}
                                 </div>
-                                <div className="space-y-1">
-                                    {[
-                                        { key: 'super_admin', label: 'Super Admin', desc: 'Unrestricted Full System Control' },
-                                        { key: 'pharmacist', label: 'Lead Pharmacist', desc: 'Rx, DDI Shield, Controlled Dispensation' },
-                                        { key: 'cashier', label: 'Senior Cashier', desc: 'Fast POS Checkout & Receipts' },
-                                        { key: 'inventory_manager', label: 'Inventory Manager', desc: 'Stock Adjustments & FEFO Master' },
-                                    ].map((r) => {
-                                        const isSelected = currentUserRole === r.key;
-                                        return (
-                                            <button
-                                                key={r.key}
-                                                disabled={switchingRole}
-                                                onClick={() => handleSwitchRole(r.key)}
-                                                className={cn(
-                                                    "w-full text-left px-2.5 py-2 rounded-xl transition flex items-center justify-between text-xs",
-                                                    isSelected
-                                                        ? "bg-slate-800 text-white font-bold border border-slate-700"
-                                                        : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
-                                                )}
-                                            >
-                                                <div>
-                                                    <p className="font-semibold">{r.label}</p>
-                                                    <p className="text-[10px] text-slate-400">{r.desc}</p>
-                                                </div>
-                                                {isSelected && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
-                                            </button>
-                                        );
-                                    })}
+
+                                {/* Active Role Switcher */}
+                                <div>
+                                    <div className="px-2 py-1 mb-1 flex items-center justify-between">
+                                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+                                            <Shield className="w-3 h-3 text-cyan-400" />
+                                            Active Role (RBAC Demo)
+                                        </span>
+                                    </div>
+                                    <div className="space-y-1">
+                                        {[
+                                            { key: 'super_admin', label: 'Super Admin', desc: 'Unrestricted Full Control' },
+                                            { key: 'pharmacist', label: 'Lead Pharmacist', desc: 'Rx, DDI & Controlled' },
+                                            { key: 'cashier', label: 'Senior Cashier', desc: 'POS Checkout & Receipts' },
+                                            { key: 'inventory_manager', label: 'Inventory Manager', desc: 'FEFO & Stock Reconciliation' },
+                                        ].map((r) => {
+                                            const isSelected = currentUserRole === r.key;
+                                            return (
+                                                <button
+                                                    key={r.key}
+                                                    disabled={switchingRole}
+                                                    onClick={() => handleSwitchRole(r.key)}
+                                                    className={cn(
+                                                        "w-full text-left px-2.5 py-1.5 rounded-xl transition flex items-center justify-between text-xs",
+                                                        isSelected
+                                                            ? "bg-slate-800 text-white font-bold border border-slate-700"
+                                                            : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
+                                                    )}
+                                                >
+                                                    <div>
+                                                        <p className="font-semibold">{r.label}</p>
+                                                        <p className="text-[10px] text-slate-400">{r.desc}</p>
+                                                    </div>
+                                                    {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Logout Action */}
+                                <div className="pt-1.5 border-t border-slate-800">
+                                    <button
+                                        type="button"
+                                        onClick={() => router.post('/logout')}
+                                        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition"
+                                    >
+                                        <LogOut className="w-3.5 h-3.5" />
+                                        <span>Sign Out of Station</span>
+                                    </button>
                                 </div>
                             </div>
                         )}
