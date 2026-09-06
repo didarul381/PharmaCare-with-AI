@@ -18,7 +18,8 @@ import {
     TrendingDown,
     Building2,
     ChevronDown,
-    Sparkles
+    Sparkles,
+    Trash2
 } from 'lucide-react';
 import { Medicine, Batch, Category, GenericName, Manufacturer, DosageForm, Unit } from '@/types';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
@@ -354,6 +355,12 @@ export default function InventoryIndex({
         setShowAdjustModal(true);
     };
 
+    const handleDeleteMedicine = (med: Medicine) => {
+        if (confirm(`Are you sure you want to deactivate and archive '${med.name}' (${med.sku})?\n\nThis action will be logged in the immutable regulatory audit trail.`)) {
+            router.delete(`/inventory/medicines/${med.id}`);
+        }
+    };
+
     return (
         <AuthenticatedLayout
             activeTab="inventory"
@@ -548,12 +555,21 @@ export default function InventoryIndex({
                                             {formatCurrency(med.current_selling_price)}
                                         </td>
                                         <td className="py-3 px-4 text-right">
-                                            <button
-                                                onClick={() => openAdjustForMedicine(med)}
-                                                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
-                                            >
-                                                Adjust Stock
-                                            </button>
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                <button
+                                                    onClick={() => openAdjustForMedicine(med)}
+                                                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+                                                >
+                                                    Adjust
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteMedicine(med)}
+                                                    title="Deactivate / Archive (Audit Logged)"
+                                                    className="p-1 rounded-lg text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

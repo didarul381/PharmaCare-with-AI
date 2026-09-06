@@ -113,14 +113,26 @@ class InventoryService
                 'notes' => $notes,
             ]);
 
-            // Regulatory Audit Trail
+            // Comprehensive Regulatory Audit Trail
             AuditLog::create([
                 'user_id' => $user->id,
                 'action' => 'stock_adjustment_' . $type,
                 'entity_type' => 'StockAdjustment',
                 'entity_id' => $adjustment->id,
-                'old_values' => ['batch_quantity' => $oldQty ?? null],
-                'new_values' => ['batch_quantity' => $newQty ?? null, 'quantity' => $quantity, 'reason' => $reason],
+                'old_values' => [
+                    'medicine' => $medicine->name,
+                    'sku' => $medicine->sku,
+                    'batch_number' => $batch?->batch_number ?? 'General Stock',
+                    'previous_stock' => $oldQty ?? null,
+                ],
+                'new_values' => [
+                    'adjusted_quantity' => $quantity,
+                    'adjustment_type' => $type,
+                    'reason' => $reason,
+                    'notes' => $notes,
+                    'new_stock' => $newQty ?? null,
+                    'operator' => $user->name . ' (' . ucfirst(str_replace('_', ' ', $user->role)) . ')',
+                ],
                 'ip_address' => request()->ip() ?? '127.0.0.1',
                 'user_agent' => request()->userAgent() ?? 'CLI/System',
                 'created_at' => Carbon::now(),

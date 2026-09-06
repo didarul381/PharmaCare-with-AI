@@ -63,6 +63,18 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        $inventoryManager = User::firstOrCreate(
+            ['email' => 'inventory@pharmacare.ai'],
+            [
+                'name' => 'Tariq Al-Mansoor (Inventory Manager)',
+                'password' => Hash::make('password'),
+                'role' => 'inventory_manager',
+                'phone' => '+1 (555) 012-4491',
+                'avatar' => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+                'is_active' => true,
+            ]
+        );
+
         // 2. Master Categories
         $categories = [
             ['name' => 'Antibiotics & Antimicrobials', 'slug' => 'antibiotics', 'icon' => 'ShieldAlert'],

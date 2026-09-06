@@ -9,9 +9,13 @@ use App\Http\Controllers\AiInsightsController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\RoleController;
 
 // Dashboard
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+// Role Switcher (RBAC Demo & Staff Switching)
+Route::post('/switch-role', [RoleController::class, 'switchRole'])->name('switch-role');
 
 // Settings & Store Profile
 Route::prefix('settings')->name('settings.')->group(function () {
@@ -23,6 +27,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
 Route::prefix('inventory')->name('inventory.')->group(function () {
     Route::get('/', [InventoryController::class, 'index'])->name('index');
     Route::post('/medicines', [InventoryController::class, 'storeMedicine'])->name('medicines.store');
+    Route::delete('/medicines/{medicine}', [InventoryController::class, 'destroyMedicine'])->name('medicines.destroy');
     Route::post('/batches', [InventoryController::class, 'storeBatch'])->name('batches.store');
     Route::post('/adjust-stock', [InventoryController::class, 'adjustStock'])->name('adjust-stock');
     Route::post('/quick-generic', [InventoryController::class, 'quickCreateGeneric'])->name('quick-generic');

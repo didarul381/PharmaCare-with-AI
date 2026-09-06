@@ -10,6 +10,8 @@ use App\Models\Manufacturer;
 use App\Models\DosageForm;
 use App\Models\Unit;
 use App\Models\StockAdjustment;
+use App\Models\AuditLog;
+use App\Models\User;
 use App\Services\InventoryService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -119,9 +121,76 @@ class InventoryController extends Controller
             'is_controlled_substance' => 'boolean',
         ]);
 
-        Medicine::create($validated);
+        $medicine = Medicine::create($validated);
+
+        $user = $request->session()->get('active_user_id') 
+            ? User::find($request->session()->get('active_user_id')) 
+            : ($request->user() ?? User::first());
+
+        // Audit Trail
+        AuditLog::create([
+            'user_id' => $user?->id ?? 1,
+            'action' => 'medicine_created',
+            'entity_type' => 'Medicine',
+            'entity_id' => $medicine->id,
+            'old_values' => null,
+            'new_values' => [
+                'name' => $medicine->name,
+                'sku' => $medicine->sku,
+                'brand_name' => $medicine->brand_name,
+                'strength' => $medicine->strength,
+                'is_controlled_substance' => $medicine->is_controlled_substance,
+                'creator' => $user?->name . ' (' . ($user?->role ?? 'Staff') . ')',
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => Carbon::now(),
+        ]);
 
         return redirect()->back()->with('success', "Medicine '{$validated['name']}' created successfully!");
+    }
+
+    public function destroyMedicine(Medicine $medicine, Request $request): RedirectResponse
+    {
+        $user = $request->session()->get('active_user_id') 
+            ? User::find($request->session()->get('active_user_id')) 
+            : ($request->user() ?? User::first());
+
+        // RBAC Check: Only Super Admin and Inventory Manager can delete/archive medicines
+        if ($user && !in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_INVENTORY_MANAGER])) {
+            return redirect()->back()->with('error', "Access Denied: Only Super Admin or Inventory Manager can delete pharmaceutical entities.");
+        }
+
+        $oldSnapshot = [
+            'name' => $medicine->name,
+            'sku' => $medicine->sku,
+            'brand_name' => $medicine->brand_name,
+            'total_stock' => $medicine->total_stock,
+            'batches_count' => $medicine->batches()->count(),
+            'is_controlled_substance' => $medicine->is_controlled_substance,
+        ];
+
+        // Soft-deactivate to preserve historical sales & audit relations
+        $medicine->update(['is_active' => false]);
+
+        // Audit Trail for Sensitive Deletion
+        AuditLog::create([
+            'user_id' => $user?->id ?? 1,
+            'action' => 'medicine_deleted',
+            'entity_type' => 'Medicine',
+            'entity_id' => $medicine->id,
+            'old_values' => $oldSnapshot,
+            'new_values' => [
+                'status' => 'Archived / Deactivated from Master Catalog',
+                'deleted_by' => $user?->name . ' (' . ($user?->role ?? 'Staff') . ')',
+                'timestamp' => Carbon::now()->toIso8601String(),
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => Carbon::now(),
+        ]);
+
+        return redirect()->back()->with('success', "Medicine '{$medicine->name}' deactivated and audit logged successfully.");
     }
 
     public function storeBatch(Request $request): RedirectResponse

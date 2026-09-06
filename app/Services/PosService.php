@@ -134,16 +134,59 @@ class PosService
             }
 
             // 7. Regulatory Audit Trail for Dispensing
+            $hasControlledSubstances = false;
+            $controlledDetails = [];
+
+            foreach ($itemsToCreate as $itemData) {
+                $med = Medicine::find($itemData['medicine_id']);
+                if ($med && $med->is_controlled_substance) {
+                    $hasControlledSubstances = true;
+                    $controlledDetails[] = [
+                        'medicine_name' => $med->name,
+                        'brand_name' => $med->brand_name,
+                        'sku' => $med->sku,
+                        'quantity' => $itemData['quantity'],
+                        'batch_id' => $itemData['batch_id'],
+                    ];
+                }
+            }
+
+            // High-priority regulatory audit log for Controlled Narcotics & Substances
+            if ($hasControlledSubstances) {
+                AuditLog::create([
+                    'user_id' => $cashier->id,
+                    'action' => 'controlled_substance_dispensed',
+                    'entity_type' => 'Sale',
+                    'entity_id' => $sale->id,
+                    'old_values' => [
+                        'narcotic_protocol' => 'DGDA / Schedule-II Controlled Dispensation Protocol',
+                        'customer' => $sale->customer?->name ?? 'Walk-in Customer',
+                    ],
+                    'new_values' => [
+                        'invoice_number' => $invoiceNumber,
+                        'controlled_substances' => $controlledDetails,
+                        'dispensed_by' => $cashier->name . ' (' . ucfirst(str_replace('_', ' ', $cashier->role)) . ')',
+                        'timestamp' => Carbon::now()->toIso8601String(),
+                    ],
+                    'ip_address' => request()->ip() ?? '127.0.0.1',
+                    'user_agent' => request()->userAgent() ?? 'POS Terminal',
+                    'created_at' => Carbon::now(),
+                ]);
+            }
+
+            // General sale audit trail
             AuditLog::create([
                 'user_id' => $cashier->id,
                 'action' => 'pos_sale_dispense',
                 'entity_type' => 'Sale',
                 'entity_id' => $sale->id,
+                'old_values' => null,
                 'new_values' => [
                     'invoice_number' => $invoiceNumber,
                     'items_count' => count($itemsToCreate),
                     'grand_total' => $grandTotal,
                     'payment_method' => $paymentData['method'] ?? 'cash',
+                    'has_controlled_substance' => $hasControlledSubstances,
                 ],
                 'ip_address' => request()->ip() ?? '127.0.0.1',
                 'user_agent' => request()->userAgent() ?? 'POS Terminal',

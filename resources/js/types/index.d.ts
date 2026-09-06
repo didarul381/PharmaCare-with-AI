@@ -228,6 +228,8 @@ export interface AuditLog {
 export interface PageProps<T extends Record<string, unknown> = Record<string, unknown>> {
     auth: {
         user: User | null;
+        available_users?: User[];
+        roles?: Record<string, string>;
     };
     flash: {
         success?: string;

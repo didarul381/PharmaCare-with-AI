@@ -1,5 +1,5 @@
 import React, { useState, ReactNode } from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import {
     LayoutDashboard,
     Boxes,
@@ -18,7 +18,10 @@ import {
     Activity,
     AlertTriangle,
     CheckCircle2,
-    Settings as SettingsIcon
+    Settings as SettingsIcon,
+    Shield,
+    Users,
+    Check
 } from 'lucide-react';
 import { PageProps } from '@/types';
 import { cn } from '@/lib/utils';
@@ -33,8 +36,75 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
     const { auth, flash, app_info } = usePage<PageProps>().props;
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [alertDismissed, setAlertDismissed] = useState(false);
+    const [switchingRole, setSwitchingRole] = useState(false);
 
-    const navItems = [
+    const currentUserRole = auth.user?.role || 'pharmacist';
+
+    // Role display configurations
+    const roleConfig: Record<string, { label: string; color: string; badgeBg: string; border: string }> = {
+        super_admin: {
+            label: 'Super Admin',
+            color: 'text-purple-400',
+            badgeBg: 'bg-purple-500/20 text-purple-300',
+            border: 'border-purple-500/30',
+        },
+        pharmacist: {
+            label: 'Lead Pharmacist',
+            color: 'text-emerald-400',
+            badgeBg: 'bg-emerald-500/20 text-emerald-300',
+            border: 'border-emerald-500/30',
+        },
+        cashier: {
+            label: 'Senior Cashier',
+            color: 'text-cyan-400',
+            badgeBg: 'bg-cyan-500/20 text-cyan-300',
+            border: 'border-cyan-500/30',
+        },
+        inventory_manager: {
+            label: 'Inventory Manager',
+            color: 'text-amber-400',
+            badgeBg: 'bg-amber-500/20 text-amber-300',
+            border: 'border-amber-500/30',
+        },
+    };
+
+    const handleSwitchRole = (role: string) => {
+        if (role === currentUserRole || switchingRole) return;
+        setSwitchingRole(true);
+        router.post('/switch-role', { role }, {
+            preserveScroll: true,
+            onFinish: () => {
+                setSwitchingRole(false);
+                setUserMenuOpen(false);
+            }
+        });
+    };
+
+    // RBAC module access check
+    const canAccess = (key: string): boolean => {
+        if (currentUserRole === 'super_admin') return true;
+
+        switch (key) {
+            case 'dashboard':
+                return true;
+            case 'pos':
+                return ['pharmacist', 'cashier'].includes(currentUserRole);
+            case 'prescriptions':
+            case 'ai-insights':
+                return ['pharmacist'].includes(currentUserRole);
+            case 'inventory':
+            case 'suppliers':
+                return ['inventory_manager', 'pharmacist'].includes(currentUserRole);
+            case 'audit-logs':
+                return ['pharmacist', 'inventory_manager'].includes(currentUserRole);
+            case 'settings':
+                return false;
+            default:
+                return false;
+        }
+    };
+
+    const allNavItems = [
         {
             key: 'dashboard',
             label: 'Dashboard',
@@ -88,6 +158,8 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
         },
     ];
 
+    const visibleNavItems = allNavItems.filter(item => canAccess(item.key));
+
     return (
         <div className="min-h-screen bg-[#070b13] text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
             {/* Flash Notifications */}
@@ -98,6 +170,14 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
                         <span>{flash.success}</span>
                     </div>
                     <button onClick={() => setAlertDismissed(true)} className="text-xs hover:text-emerald-200">Dismiss</button>
+                </div>
+            )}
+            {flash?.error && (
+                <div className="bg-rose-500/10 border-b border-rose-500/30 px-6 py-2.5 flex items-center justify-between text-rose-400 text-sm">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                        <span>{flash.error}</span>
+                    </div>
                 </div>
             )}
 
@@ -120,10 +200,20 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
 
                     {/* Navigation Links */}
                     <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
-                        <div className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                            Core Modules
+                        <div className="px-3 pb-2 flex items-center justify-between">
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                Core Modules
+                            </span>
+                            <span className={cn(
+                                "text-[10px] font-bold px-2 py-0.5 rounded-full border",
+                                roleConfig[currentUserRole]?.badgeBg || "bg-slate-800 text-slate-400",
+                                roleConfig[currentUserRole]?.border || "border-slate-700"
+                            )}>
+                                {roleConfig[currentUserRole]?.label || currentUserRole}
+                            </span>
                         </div>
-                        {navItems.map((item) => {
+
+                        {visibleNavItems.map((item) => {
                             const Icon = item.icon;
                             const isActive = activeTab === item.key;
                             return (
@@ -173,25 +263,72 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
                             <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 pulse-emerald" />
                         </div>
                         <p className="text-[11px] text-slate-400 leading-relaxed">
-                            FEFO Auto-Allocation & DDI Safety Active.
+                            RBAC & FEFO Auto-Audit Active.
                         </p>
                     </div>
 
-                    {/* User Profile Footer */}
-                    <div className="p-3 border-t border-slate-800/80">
-                        <div className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-slate-800/50 transition">
-                            <img
-                                src={auth.user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
-                                alt={auth.user?.name || "Staff"}
-                                className="w-9 h-9 rounded-full object-cover border border-emerald-500/30"
-                            />
-                            <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-white truncate">{auth.user?.name || "Staff User"}</p>
-                                <p className="text-[10px] text-emerald-400 font-medium capitalize truncate">
-                                    {auth.user?.role?.replace('_', ' ') || "Pharmacist"}
-                                </p>
+                    {/* Role Switcher & User Profile Footer */}
+                    <div className="p-3 border-t border-slate-800/80 relative">
+                        <button
+                            onClick={() => setUserMenuOpen(!userMenuOpen)}
+                            className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 transition text-left group"
+                        >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <img
+                                    src={auth.user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
+                                    alt={auth.user?.name || "Staff"}
+                                    className="w-8 h-8 rounded-full object-cover border border-slate-700"
+                                />
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-semibold text-white truncate">{auth.user?.name || "Staff User"}</p>
+                                    <p className={cn("text-[10px] font-semibold truncate", roleConfig[currentUserRole]?.color || "text-emerald-400")}>
+                                        {roleConfig[currentUserRole]?.label || currentUserRole}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                            <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", userMenuOpen && "rotate-180")} />
+                        </button>
+
+                        {/* Role Switcher Popover */}
+                        {userMenuOpen && (
+                            <div className="absolute bottom-16 left-3 right-3 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-bottom-2">
+                                <div className="px-2 py-1.5 border-b border-slate-800 mb-1 flex items-center justify-between">
+                                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+                                        <Shield className="w-3 h-3 text-cyan-400" />
+                                        Switch Active Role (RBAC)
+                                    </span>
+                                </div>
+                                <div className="space-y-1">
+                                    {[
+                                        { key: 'super_admin', label: 'Super Admin', desc: 'Unrestricted Full System Control' },
+                                        { key: 'pharmacist', label: 'Lead Pharmacist', desc: 'Rx, DDI Shield, Controlled Dispensation' },
+                                        { key: 'cashier', label: 'Senior Cashier', desc: 'Fast POS Checkout & Receipts' },
+                                        { key: 'inventory_manager', label: 'Inventory Manager', desc: 'Stock Adjustments & FEFO Master' },
+                                    ].map((r) => {
+                                        const isSelected = currentUserRole === r.key;
+                                        return (
+                                            <button
+                                                key={r.key}
+                                                disabled={switchingRole}
+                                                onClick={() => handleSwitchRole(r.key)}
+                                                className={cn(
+                                                    "w-full text-left px-2.5 py-2 rounded-xl transition flex items-center justify-between text-xs",
+                                                    isSelected
+                                                        ? "bg-slate-800 text-white font-bold border border-slate-700"
+                                                        : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
+                                                )}
+                                            >
+                                                <div>
+                                                    <p className="font-semibold">{r.label}</p>
+                                                    <p className="text-[10px] text-slate-400">{r.desc}</p>
+                                                </div>
+                                                {isSelected && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </aside>
 
@@ -212,18 +349,30 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
 
                         {/* Top Actions */}
                         <div className="flex items-center gap-3">
+                            {/* Active Role Pill */}
+                            <div className={cn(
+                                "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border",
+                                roleConfig[currentUserRole]?.badgeBg || "bg-slate-800 text-slate-300",
+                                roleConfig[currentUserRole]?.border || "border-slate-700"
+                            )}>
+                                <Shield className="w-3.5 h-3.5" />
+                                <span>{roleConfig[currentUserRole]?.label || currentUserRole}</span>
+                            </div>
+
                             <div className="flex items-center gap-2 px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[11px] font-medium text-emerald-400">
                                 <ShieldCheck className="w-3.5 h-3.5" />
                                 <span>FDA/DGDA Compliant</span>
                             </div>
 
-                            <Link
-                                href="/pos"
-                                className="flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs rounded-xl shadow-glow-emerald transition-all transform hover:scale-[1.02]"
-                            >
-                                <ShoppingCart className="w-3.5 h-3.5 text-slate-950" />
-                                <span>Quick POS (F2)</span>
-                            </Link>
+                            {canAccess('pos') && (
+                                <Link
+                                    href="/pos"
+                                    className="flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs rounded-xl shadow-glow-emerald transition-all transform hover:scale-[1.02]"
+                                >
+                                    <ShoppingCart className="w-3.5 h-3.5 text-slate-950" />
+                                    <span>Quick POS (F2)</span>
+                                </Link>
+                            )}
                         </div>
                     </header>
 
@@ -241,3 +390,4 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
         </div>
     );
 }
+

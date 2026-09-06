@@ -35,19 +35,66 @@ class User extends Authenticatable
         ];
     }
 
+    public const ROLE_SUPER_ADMIN = 'super_admin';
+    public const ROLE_PHARMACIST = 'pharmacist';
+    public const ROLE_CASHIER = 'cashier';
+    public const ROLE_INVENTORY_MANAGER = 'inventory_manager';
+
+    public static function getRoles(): array
+    {
+        return [
+            self::ROLE_SUPER_ADMIN => 'Super Admin',
+            self::ROLE_PHARMACIST => 'Lead Pharmacist',
+            self::ROLE_CASHIER => 'Cashier',
+            self::ROLE_INVENTORY_MANAGER => 'Inventory Manager',
+        ];
+    }
+
     public function isSuperAdmin(): bool
     {
-        return $this->role === 'super_admin';
+        return $this->role === self::ROLE_SUPER_ADMIN;
     }
 
     public function isPharmacist(): bool
     {
-        return in_array($this->role, ['super_admin', 'pharmacist']);
+        return in_array($this->role, [self::ROLE_SUPER_ADMIN, self::ROLE_PHARMACIST]);
     }
 
     public function isCashier(): bool
     {
-        return $this->role === 'cashier';
+        return $this->role === self::ROLE_CASHIER;
+    }
+
+    public function isInventoryManager(): bool
+    {
+        return in_array($this->role, [self::ROLE_SUPER_ADMIN, self::ROLE_INVENTORY_MANAGER]);
+    }
+
+    public function hasRole(string|array $roles): bool
+    {
+        if ($this->role === self::ROLE_SUPER_ADMIN) {
+            return true;
+        }
+
+        $roles = is_array($roles) ? $roles : [$roles];
+        return in_array($this->role, $roles);
+    }
+
+    public function canAccessModule(string $module): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        return match ($module) {
+            'dashboard' => true,
+            'pos' => in_array($this->role, [self::ROLE_PHARMACIST, self::ROLE_CASHIER]),
+            'prescriptions', 'ai-insights' => in_array($this->role, [self::ROLE_PHARMACIST]),
+            'inventory', 'suppliers' => in_array($this->role, [self::ROLE_INVENTORY_MANAGER, self::ROLE_PHARMACIST]),
+            'audit-logs' => in_array($this->role, [self::ROLE_PHARMACIST, self::ROLE_INVENTORY_MANAGER]),
+            'settings' => false,
+            default => false,
+        };
     }
 
     public function sales(): HasMany

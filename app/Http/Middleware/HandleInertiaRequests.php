@@ -35,15 +35,31 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $user = $request->user();
-        if (!$user) {
-            try {
-                // Default to Lead Pharmacist for instant preview & dev workflow
-                $user = \App\Models\User::where('role', 'pharmacist')->first() 
-                    ?? \App\Models\User::first();
-            } catch (\Throwable $e) {
-                $user = null;
+        $activeUserId = $request->session()->get('active_user_id');
+        $user = null;
+
+        try {
+            if ($activeUserId) {
+                $user = \App\Models\User::find($activeUserId);
             }
+
+            if (!$user) {
+                $user = $request->user()
+                    ?? \App\Models\User::where('role', 'super_admin')->first()
+                    ?? \App\Models\User::where('role', 'pharmacist')->first()
+                    ?? \App\Models\User::first();
+            }
+
+            $availableUsers = \App\Models\User::where('is_active', true)->get()->map(fn($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'role' => $u->role,
+                'avatar' => $u->avatar,
+            ]);
+        } catch (\Throwable $e) {
+            $user = null;
+            $availableUsers = [];
         }
 
         return [
@@ -57,6 +73,8 @@ class HandleInertiaRequests extends Middleware
                     'phone' => $user->phone,
                     'avatar' => $user->avatar,
                 ] : null,
+                'available_users' => $availableUsers,
+                'roles' => \App\Models\User::getRoles(),
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
