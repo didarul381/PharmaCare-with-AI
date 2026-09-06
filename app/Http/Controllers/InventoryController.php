@@ -178,4 +178,90 @@ class InventoryController extends Controller
 
         return redirect()->back()->with('success', "Stock adjustment logged and inventory updated successfully.");
     }
+
+    public function quickCreateGeneric(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'therapeutic_class' => 'nullable|string|max:255',
+        ]);
+
+        $generic = GenericName::firstOrCreate(
+            ['name' => trim($validated['name'])],
+            ['therapeutic_class' => $validated['therapeutic_class'] ?? null]
+        );
+
+        return response()->json([
+            'success' => true,
+            'item' => $generic,
+            'message' => "Generic '{$generic->name}' created successfully."
+        ]);
+    }
+
+    public function quickCreateCategory(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        $name = trim($validated['name']);
+        $category = Category::where('name', $name)->first();
+        if (!$category) {
+            $category = Category::create([
+                'name' => $name,
+                'slug' => \Illuminate\Support\Str::slug($name) . '-' . substr(uniqid(), -4),
+                'description' => $validated['description'] ?? null,
+                'is_active' => true,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'item' => $category,
+            'message' => "Category '{$category->name}' created successfully."
+        ]);
+    }
+
+    public function quickCreateManufacturer(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'contact_person' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:50',
+        ]);
+
+        $manufacturer = Manufacturer::firstOrCreate(
+            ['name' => trim($validated['name'])],
+            [
+                'contact_person' => $validated['contact_person'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+                'is_active' => true,
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'item' => $manufacturer,
+            'message' => "Manufacturer '{$manufacturer->name}' created successfully."
+        ]);
+    }
+
+    public function quickCreateDosageForm(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $form = DosageForm::firstOrCreate(
+            ['name' => trim($validated['name'])]
+        );
+
+        return response()->json([
+            'success' => true,
+            'item' => $form,
+            'message' => "Dosage form '{$form->name}' created successfully."
+        ]);
+    }
 }
+

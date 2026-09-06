@@ -25,6 +25,10 @@ Route::prefix('inventory')->name('inventory.')->group(function () {
     Route::post('/medicines', [InventoryController::class, 'storeMedicine'])->name('medicines.store');
     Route::post('/batches', [InventoryController::class, 'storeBatch'])->name('batches.store');
     Route::post('/adjust-stock', [InventoryController::class, 'adjustStock'])->name('adjust-stock');
+    Route::post('/quick-generic', [InventoryController::class, 'quickCreateGeneric'])->name('quick-generic');
+    Route::post('/quick-category', [InventoryController::class, 'quickCreateCategory'])->name('quick-category');
+    Route::post('/quick-manufacturer', [InventoryController::class, 'quickCreateManufacturer'])->name('quick-manufacturer');
+    Route::post('/quick-dosage-form', [InventoryController::class, 'quickCreateDosageForm'])->name('quick-dosage-form');
 });
 
 // POS & Dispensing

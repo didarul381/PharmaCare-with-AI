@@ -64,6 +64,33 @@ export default function InventoryIndex({
     const [selectedGeneric, setSelectedGeneric] = useState(filters.generic_id || '');
     const [selectedExpiry, setSelectedExpiry] = useState(filters.filter_expiry || '');
 
+    // Master data lists with dynamic quick-add support
+    const [genericsList, setGenericsList] = useState<GenericName[]>(generics);
+    const [categoriesList, setCategoriesList] = useState<Category[]>(categories);
+    const [manufacturersList, setManufacturersList] = useState<Manufacturer[]>(manufacturers);
+    const [dosageFormsList, setDosageFormsList] = useState<DosageForm[]>(dosage_forms);
+
+    React.useEffect(() => { setGenericsList(generics); }, [generics]);
+    React.useEffect(() => { setCategoriesList(categories); }, [categories]);
+    React.useEffect(() => { setManufacturersList(manufacturers); }, [manufacturers]);
+    React.useEffect(() => { setDosageFormsList(dosage_forms); }, [dosage_forms]);
+
+    // Quick Add States for In-Modal Master Entity Creation
+    const [quickAddGeneric, setQuickAddGeneric] = useState(false);
+    const [newGenericName, setNewGenericName] = useState('');
+
+    const [quickAddCategory, setQuickAddCategory] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+
+    const [quickAddManufacturer, setQuickAddManufacturer] = useState(false);
+    const [newManufacturerName, setNewManufacturerName] = useState('');
+
+    const [quickAddDosageForm, setQuickAddDosageForm] = useState(false);
+    const [newDosageFormName, setNewDosageFormName] = useState('');
+
+    const [quickLoading, setQuickLoading] = useState<string | null>(null);
+    const [quickError, setQuickError] = useState<string | null>(null);
+
     // Modals
     const [showMedModal, setShowMedModal] = useState(false);
     const [showBatchModal, setShowBatchModal] = useState(false);
@@ -88,6 +115,143 @@ export default function InventoryIndex({
         is_prescription_required: false,
         is_controlled_substance: false,
     });
+
+    // Handlers for Quick Adding Master Entities without leaving or resetting form
+    const handleQuickAddGeneric = async () => {
+        if (!newGenericName.trim()) return;
+        setQuickLoading('generic');
+        setQuickError(null);
+        try {
+            const csrfToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
+            const res = await fetch('/inventory/quick-generic', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({ name: newGenericName.trim() }),
+            });
+            const data = await res.json();
+            if (data.success && data.item) {
+                setGenericsList((prev) => {
+                    if (prev.some((g) => g.id === data.item.id)) return prev;
+                    return [...prev, data.item].sort((a, b) => a.name.localeCompare(b.name));
+                });
+                setMedForm((prev) => ({ ...prev, generic_name_id: String(data.item.id) }));
+                setNewGenericName('');
+                setQuickAddGeneric(false);
+            } else {
+                setQuickError(data.message || 'Failed to add generic molecule');
+            }
+        } catch (e: any) {
+            setQuickError(e.message || 'Failed to add generic molecule');
+        } finally {
+            setQuickLoading(null);
+        }
+    };
+
+    const handleQuickAddCategory = async () => {
+        if (!newCategoryName.trim()) return;
+        setQuickLoading('category');
+        setQuickError(null);
+        try {
+            const csrfToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
+            const res = await fetch('/inventory/quick-category', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({ name: newCategoryName.trim() }),
+            });
+            const data = await res.json();
+            if (data.success && data.item) {
+                setCategoriesList((prev) => {
+                    if (prev.some((c) => c.id === data.item.id)) return prev;
+                    return [...prev, data.item].sort((a, b) => a.name.localeCompare(b.name));
+                });
+                setMedForm((prev) => ({ ...prev, category_id: String(data.item.id) }));
+                setNewCategoryName('');
+                setQuickAddCategory(false);
+            } else {
+                setQuickError(data.message || 'Failed to add category');
+            }
+        } catch (e: any) {
+            setQuickError(e.message || 'Failed to add category');
+        } finally {
+            setQuickLoading(null);
+        }
+    };
+
+    const handleQuickAddManufacturer = async () => {
+        if (!newManufacturerName.trim()) return;
+        setQuickLoading('manufacturer');
+        setQuickError(null);
+        try {
+            const csrfToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
+            const res = await fetch('/inventory/quick-manufacturer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({ name: newManufacturerName.trim() }),
+            });
+            const data = await res.json();
+            if (data.success && data.item) {
+                setManufacturersList((prev) => {
+                    if (prev.some((m) => m.id === data.item.id)) return prev;
+                    return [...prev, data.item].sort((a, b) => a.name.localeCompare(b.name));
+                });
+                setMedForm((prev) => ({ ...prev, manufacturer_id: String(data.item.id) }));
+                setNewManufacturerName('');
+                setQuickAddManufacturer(false);
+            } else {
+                setQuickError(data.message || 'Failed to add manufacturer');
+            }
+        } catch (e: any) {
+            setQuickError(e.message || 'Failed to add manufacturer');
+        } finally {
+            setQuickLoading(null);
+        }
+    };
+
+    const handleQuickAddDosageForm = async () => {
+        if (!newDosageFormName.trim()) return;
+        setQuickLoading('dosage_form');
+        setQuickError(null);
+        try {
+            const csrfToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
+            const res = await fetch('/inventory/quick-dosage-form', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({ name: newDosageFormName.trim() }),
+            });
+            const data = await res.json();
+            if (data.success && data.item) {
+                setDosageFormsList((prev) => {
+                    if (prev.some((f) => f.id === data.item.id)) return prev;
+                    return [...prev, data.item].sort((a, b) => a.name.localeCompare(b.name));
+                });
+                setMedForm((prev) => ({ ...prev, dosage_form_id: String(data.item.id) }));
+                setNewDosageFormName('');
+                setQuickAddDosageForm(false);
+            } else {
+                setQuickError(data.message || 'Failed to add dosage form');
+            }
+        } catch (e: any) {
+            setQuickError(e.message || 'Failed to add dosage form');
+        } finally {
+            setQuickLoading(null);
+        }
+    };
 
     const [batchForm, setBatchForm] = useState({
         medicine_id: '',
@@ -480,6 +644,15 @@ export default function InventoryIndex({
                             </button>
                         </div>
 
+                        {quickError && (
+                            <div className="mb-4 p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between animate-in fade-in">
+                                <span>{quickError}</span>
+                                <button type="button" onClick={() => setQuickError(null)} className="text-rose-400 hover:text-white">
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        )}
+
                         <form onSubmit={handleCreateMedicine} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -504,57 +677,252 @@ export default function InventoryIndex({
                                         className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
                                     />
                                 </div>
+                                {/* Generic Molecule */}
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-300 mb-1">Generic Molecule *</label>
-                                    <select
-                                        value={medForm.generic_name_id}
-                                        onChange={(e) => setMedForm({ ...medForm, generic_name_id: e.target.value })}
-                                        className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-                                    >
-                                        <option value="">Select Generic</option>
-                                        {generics.map((g) => (
-                                            <option key={g.id} value={g.id}>{g.name}</option>
-                                        ))}
-                                    </select>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="block text-xs font-semibold text-slate-300">Generic Molecule *</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setQuickAddGeneric(!quickAddGeneric);
+                                                setQuickError(null);
+                                            }}
+                                            className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                                        >
+                                            <Plus className="w-3 h-3" />
+                                            {quickAddGeneric ? 'Cancel' : 'Add New'}
+                                        </button>
+                                    </div>
+                                    {quickAddGeneric ? (
+                                        <div className="flex items-center gap-1.5 p-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl animate-in fade-in duration-150">
+                                            <input
+                                                type="text"
+                                                placeholder="Enter generic molecule..."
+                                                value={newGenericName}
+                                                onChange={(e) => setNewGenericName(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleQuickAddGeneric();
+                                                    }
+                                                }}
+                                                autoFocus
+                                                className="flex-1 text-xs bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-emerald-500 placeholder:text-slate-500"
+                                            />
+                                            <button
+                                                type="button"
+                                                disabled={quickLoading === 'generic' || !newGenericName.trim()}
+                                                onClick={handleQuickAddGeneric}
+                                                className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-lg shadow-sm whitespace-nowrap"
+                                            >
+                                                {quickLoading === 'generic' ? '...' : 'Save'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setQuickAddGeneric(false)}
+                                                className="p-1 text-slate-400 hover:text-slate-200"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <select
+                                            value={medForm.generic_name_id}
+                                            onChange={(e) => setMedForm({ ...medForm, generic_name_id: e.target.value })}
+                                            className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                                        >
+                                            <option value="">Select Generic</option>
+                                            {genericsList.map((g) => (
+                                                <option key={g.id} value={g.id}>{g.name}</option>
+                                            ))}
+                                        </select>
+                                    )}
                                 </div>
+
+                                {/* Therapeutic Category */}
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-300 mb-1">Therapeutic Category</label>
-                                    <select
-                                        value={medForm.category_id}
-                                        onChange={(e) => setMedForm({ ...medForm, category_id: e.target.value })}
-                                        className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-                                    >
-                                        <option value="">Select Category</option>
-                                        {categories.map((c) => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
-                                        ))}
-                                    </select>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="block text-xs font-semibold text-slate-300">Therapeutic Category</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setQuickAddCategory(!quickAddCategory);
+                                                setQuickError(null);
+                                            }}
+                                            className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                                        >
+                                            <Plus className="w-3 h-3" />
+                                            {quickAddCategory ? 'Cancel' : 'Add New'}
+                                        </button>
+                                    </div>
+                                    {quickAddCategory ? (
+                                        <div className="flex items-center gap-1.5 p-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl animate-in fade-in duration-150">
+                                            <input
+                                                type="text"
+                                                placeholder="Enter category name..."
+                                                value={newCategoryName}
+                                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleQuickAddCategory();
+                                                    }
+                                                }}
+                                                autoFocus
+                                                className="flex-1 text-xs bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-emerald-500 placeholder:text-slate-500"
+                                            />
+                                            <button
+                                                type="button"
+                                                disabled={quickLoading === 'category' || !newCategoryName.trim()}
+                                                onClick={handleQuickAddCategory}
+                                                className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-lg shadow-sm whitespace-nowrap"
+                                            >
+                                                {quickLoading === 'category' ? '...' : 'Save'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setQuickAddCategory(false)}
+                                                className="p-1 text-slate-400 hover:text-slate-200"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <select
+                                            value={medForm.category_id}
+                                            onChange={(e) => setMedForm({ ...medForm, category_id: e.target.value })}
+                                            className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                                        >
+                                            <option value="">Select Category</option>
+                                            {categoriesList.map((c) => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </select>
+                                    )}
                                 </div>
+
+                                {/* Manufacturer */}
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-300 mb-1">Manufacturer</label>
-                                    <select
-                                        value={medForm.manufacturer_id}
-                                        onChange={(e) => setMedForm({ ...medForm, manufacturer_id: e.target.value })}
-                                        className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-                                    >
-                                        <option value="">Select Manufacturer</option>
-                                        {manufacturers.map((m) => (
-                                            <option key={m.id} value={m.id}>{m.name}</option>
-                                        ))}
-                                    </select>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="block text-xs font-semibold text-slate-300">Manufacturer</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setQuickAddManufacturer(!quickAddManufacturer);
+                                                setQuickError(null);
+                                            }}
+                                            className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                                        >
+                                            <Plus className="w-3 h-3" />
+                                            {quickAddManufacturer ? 'Cancel' : 'Add New'}
+                                        </button>
+                                    </div>
+                                    {quickAddManufacturer ? (
+                                        <div className="flex items-center gap-1.5 p-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl animate-in fade-in duration-150">
+                                            <input
+                                                type="text"
+                                                placeholder="Enter manufacturer..."
+                                                value={newManufacturerName}
+                                                onChange={(e) => setNewManufacturerName(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleQuickAddManufacturer();
+                                                    }
+                                                }}
+                                                autoFocus
+                                                className="flex-1 text-xs bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-emerald-500 placeholder:text-slate-500"
+                                            />
+                                            <button
+                                                type="button"
+                                                disabled={quickLoading === 'manufacturer' || !newManufacturerName.trim()}
+                                                onClick={handleQuickAddManufacturer}
+                                                className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-lg shadow-sm whitespace-nowrap"
+                                            >
+                                                {quickLoading === 'manufacturer' ? '...' : 'Save'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setQuickAddManufacturer(false)}
+                                                className="p-1 text-slate-400 hover:text-slate-200"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <select
+                                            value={medForm.manufacturer_id}
+                                            onChange={(e) => setMedForm({ ...medForm, manufacturer_id: e.target.value })}
+                                            className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                                        >
+                                            <option value="">Select Manufacturer</option>
+                                            {manufacturersList.map((m) => (
+                                                <option key={m.id} value={m.id}>{m.name}</option>
+                                            ))}
+                                        </select>
+                                    )}
                                 </div>
+
+                                {/* Dosage Form */}
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-300 mb-1">Dosage Form</label>
-                                    <select
-                                        value={medForm.dosage_form_id}
-                                        onChange={(e) => setMedForm({ ...medForm, dosage_form_id: e.target.value })}
-                                        className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-                                    >
-                                        <option value="">Select Form</option>
-                                        {dosage_forms.map((f) => (
-                                            <option key={f.id} value={f.id}>{f.name}</option>
-                                        ))}
-                                    </select>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="block text-xs font-semibold text-slate-300">Dosage Form</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setQuickAddDosageForm(!quickAddDosageForm);
+                                                setQuickError(null);
+                                            }}
+                                            className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                                        >
+                                            <Plus className="w-3 h-3" />
+                                            {quickAddDosageForm ? 'Cancel' : 'Add New'}
+                                        </button>
+                                    </div>
+                                    {quickAddDosageForm ? (
+                                        <div className="flex items-center gap-1.5 p-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl animate-in fade-in duration-150">
+                                            <input
+                                                type="text"
+                                                placeholder="Enter dosage form (e.g. Capsule)..."
+                                                value={newDosageFormName}
+                                                onChange={(e) => setNewDosageFormName(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleQuickAddDosageForm();
+                                                    }
+                                                }}
+                                                autoFocus
+                                                className="flex-1 text-xs bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-emerald-500 placeholder:text-slate-500"
+                                            />
+                                            <button
+                                                type="button"
+                                                disabled={quickLoading === 'dosage_form' || !newDosageFormName.trim()}
+                                                onClick={handleQuickAddDosageForm}
+                                                className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-lg shadow-sm whitespace-nowrap"
+                                            >
+                                                {quickLoading === 'dosage_form' ? '...' : 'Save'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setQuickAddDosageForm(false)}
+                                                className="p-1 text-slate-400 hover:text-slate-200"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <select
+                                            value={medForm.dosage_form_id}
+                                            onChange={(e) => setMedForm({ ...medForm, dosage_form_id: e.target.value })}
+                                            className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                                        >
+                                            <option value="">Select Form</option>
+                                            {dosageFormsList.map((f) => (
+                                                <option key={f.id} value={f.id}>{f.name}</option>
+                                            ))}
+                                        </select>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-300 mb-1">Strength (e.g. 500mg)</label>
