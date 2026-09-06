@@ -72,6 +72,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Respiratory & Anti-Allergy', 'slug' => 'respiratory', 'icon' => 'Wind'],
             ['name' => 'Diabetes & Endocrine Care', 'slug' => 'diabetes', 'icon' => 'Droplet'],
             ['name' => 'Vitamins & Dietary Supplements', 'slug' => 'vitamins', 'icon' => 'Sparkles'],
+            ['name' => 'Obstetrics, Gynae & Antenatal', 'slug' => 'obstetrics-gynae', 'icon' => 'Heart'],
             ['name' => 'Dermatology & Topicals', 'slug' => 'dermatology', 'icon' => 'Layers'],
         ];
 
@@ -81,7 +82,7 @@ class DatabaseSeeder extends Seeder
         }
 
         // 3. Dosage Forms
-        $forms = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Cream / Ointment', 'Inhaler', 'Eye / Ear Drops', 'Oral Suspension'];
+        $forms = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Cream / Ointment', 'Inhaler', 'Eye / Ear Drops', 'Oral Suspension', 'Oral Solution'];
         $formModels = [];
         foreach ($forms as $form) {
             $formModels[$form] = DosageForm::create(['name' => $form]);
@@ -137,12 +138,20 @@ class DatabaseSeeder extends Seeder
                 'code' => 'REN-004',
             ],
             [
+                'name' => 'Popular Pharmaceuticals Ltd.',
+                'contact_person' => 'Dr. Kazi Mostafa',
+                'email' => 'contact@popular-pharma.com',
+                'phone' => '+880 2 9669480',
+                'address' => 'Popular Tower, Dhanmondi, Dhaka',
+                'code' => 'POP-005',
+            ],
+            [
                 'name' => 'Pfizer Global Healthcare',
                 'contact_person' => 'Sarah Jenkins',
                 'email' => 'distributors@pfizer.com',
                 'phone' => '+1 (800) 879-3477',
                 'address' => '66 Hudson Blvd E, New York, NY 10001',
-                'code' => 'PFZ-005',
+                'code' => 'PFZ-006',
             ],
         ];
 
@@ -193,6 +202,16 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Clopidogrel', 'therapeutic_class' => 'Antiplatelet', 'pregnancy_category' => 'B'],
             ['name' => 'Sildenafil Citrate', 'therapeutic_class' => 'PDE5 Inhibitor', 'pregnancy_category' => 'B'],
             ['name' => 'Nitroglycerin / Glyceryl Trinitrate', 'therapeutic_class' => 'Nitrate Vasodilator', 'pregnancy_category' => 'C'],
+            
+            // Antenatal & Gynae Generics (from real prescription)
+            ['name' => 'Carbonyl Iron + Folic Acid + Zinc Sulfate Monohydrate', 'therapeutic_class' => 'Hematinic & Antianemic', 'pregnancy_category' => 'A'],
+            ['name' => 'Multivitamin & Multimineral Essentials (For nursing mother)', 'therapeutic_class' => 'Antenatal Vitamin Supplement', 'pregnancy_category' => 'A'],
+            ['name' => 'Calcium Orotate + Vitamin D3 (Coral Calcium)', 'therapeutic_class' => 'Mineral & Vitamin Supplement', 'pregnancy_category' => 'C'],
+            ['name' => 'Calcium Folinate (Folinic Acid)', 'therapeutic_class' => 'Active Folate / Antianemic', 'pregnancy_category' => 'A'],
+            ['name' => 'Doxylamine Succinate + Pyridoxine HCl', 'therapeutic_class' => 'Antiemetic for Nausea/Vomiting of Pregnancy', 'pregnancy_category' => 'A'],
+            ['name' => 'Tiemonium Methylsulphate', 'therapeutic_class' => 'Antispasmodic / Smooth Muscle Relaxant', 'pregnancy_category' => 'B'],
+            ['name' => 'Lactulose Solution', 'therapeutic_class' => 'Osmotic Laxative', 'pregnancy_category' => 'B'],
+            ['name' => 'Mebhydrolin Napadisylate', 'therapeutic_class' => 'Antihistamine / Antiallergic', 'pregnancy_category' => 'B'],
         ];
 
         $genericModels = [];
@@ -200,7 +219,7 @@ class DatabaseSeeder extends Seeder
             $genericModels[$g['name']] = GenericName::create($g);
         }
 
-        // 7. Clinical Drug-Drug Interactions (Critical Safety Shield)
+        // 7. Clinical Drug-Drug Interactions
         $interactions = [
             [
                 'generic_a' => 'Ciprofloxacin',
@@ -253,6 +272,180 @@ class DatabaseSeeder extends Seeder
 
         // 8. Realistic Medicines Catalog
         $medicinesCatalog = [
+            // Core Antenatal Prescription items (Prof. Dr. Joysree Saha Rx)
+            [
+                'name' => 'Zeefol-CI',
+                'brand_name' => 'Zeefol-CI Timed Release Capsule',
+                'sku' => 'MED-ZEE-001',
+                'barcode' => '894110200001',
+                'generic' => 'Carbonyl Iron + Folic Acid + Zinc Sulfate Monohydrate',
+                'category' => 'obstetrics-gynae',
+                'mfg' => 'Square Pharmaceuticals Ltd.',
+                'form' => 'Capsule',
+                'primary_unit' => 'Box',
+                'secondary_unit' => 'Strip',
+                'conversion_rate' => 3, // 30 caps = 3 strips of 10
+                'strength' => '50mg + 0.5mg + 61.8mg',
+                'min_stock' => 50,
+                'is_rx' => true,
+                'batches' => [
+                    ['batch' => 'ZF7719', 'days' => 240, 'cost' => 6.00, 'sell' => 8.50, 'qty' => 350],
+                ],
+            ],
+            [
+                'name' => 'Momvit',
+                'brand_name' => 'Momvit Antenatal & Nursing Essentials',
+                'sku' => 'MED-MOM-002',
+                'barcode' => '894110200002',
+                'generic' => 'Multivitamin & Multimineral Essentials (For nursing mother)',
+                'category' => 'vitamins',
+                'mfg' => 'Incepta Pharmaceuticals Ltd.',
+                'form' => 'Tablet',
+                'primary_unit' => 'Box',
+                'secondary_unit' => 'Strip',
+                'conversion_rate' => 3,
+                'strength' => 'Standard Prenatal Formula',
+                'min_stock' => 40,
+                'is_rx' => false,
+                'batches' => [
+                    ['batch' => 'MV9012', 'days' => 300, 'cost' => 5.00, 'sell' => 7.00, 'qty' => 400],
+                ],
+            ],
+            [
+                'name' => 'Natcoral Dx',
+                'brand_name' => 'Natcoral Dx Coral Calcium + D3',
+                'sku' => 'MED-NAT-003',
+                'barcode' => '894110200003',
+                'generic' => 'Calcium Orotate + Vitamin D3 (Coral Calcium)',
+                'category' => 'vitamins',
+                'mfg' => 'Renata Limited',
+                'form' => 'Tablet',
+                'primary_unit' => 'Bottle',
+                'secondary_unit' => 'Bottle',
+                'conversion_rate' => 1,
+                'strength' => '500mg + 200 IU',
+                'min_stock' => 30,
+                'is_rx' => false,
+                'batches' => [
+                    ['batch' => 'NC4410', 'days' => 180, 'cost' => 180.00, 'sell' => 240.00, 'qty' => 120],
+                ],
+            ],
+            [
+                'name' => 'Biofol 5mg',
+                'brand_name' => 'Biofol Calcium Folinate',
+                'sku' => 'MED-BIO-004',
+                'barcode' => '894110200004',
+                'generic' => 'Calcium Folinate (Folinic Acid)',
+                'category' => 'obstetrics-gynae',
+                'mfg' => 'Beximco Pharmaceuticals Ltd.',
+                'form' => 'Tablet',
+                'primary_unit' => 'Box',
+                'secondary_unit' => 'Strip',
+                'conversion_rate' => 3,
+                'strength' => '5mg',
+                'min_stock' => 25,
+                'is_rx' => true,
+                'batches' => [
+                    ['batch' => 'BF3312', 'days' => 200, 'cost' => 8.00, 'sell' => 11.00, 'qty' => 180],
+                ],
+            ],
+            [
+                'name' => 'Dicliz plus 20mg',
+                'brand_name' => 'Dicliz Plus (Doxylamine + Pyridoxine)',
+                'sku' => 'MED-DIC-005',
+                'barcode' => '894110200005',
+                'generic' => 'Doxylamine Succinate + Pyridoxine HCl',
+                'category' => 'obstetrics-gynae',
+                'mfg' => 'Square Pharmaceuticals Ltd.',
+                'form' => 'Tablet',
+                'primary_unit' => 'Box',
+                'secondary_unit' => 'Strip',
+                'conversion_rate' => 3,
+                'strength' => '10mg + 10mg',
+                'min_stock' => 35,
+                'is_rx' => true,
+                'batches' => [
+                    ['batch' => 'DC5501', 'days' => 365, 'cost' => 7.50, 'sell' => 10.00, 'qty' => 250],
+                ],
+            ],
+            [
+                'name' => 'Progut 20mg',
+                'brand_name' => 'Progut Esomeprazole MUPS',
+                'sku' => 'MED-PRO-006',
+                'barcode' => '894110200006',
+                'generic' => 'Esomeprazole',
+                'category' => 'gastrointestinal',
+                'mfg' => 'Square Pharmaceuticals Ltd.',
+                'form' => 'Capsule',
+                'primary_unit' => 'Box',
+                'secondary_unit' => 'Strip',
+                'conversion_rate' => 3,
+                'strength' => '20mg',
+                'min_stock' => 50,
+                'is_rx' => false,
+                'batches' => [
+                    ['batch' => 'PG8810', 'days' => 120, 'cost' => 5.20, 'sell' => 7.00, 'qty' => 450],
+                ],
+            ],
+            [
+                'name' => 'Viset 50mg',
+                'brand_name' => 'Viset Tiemonium Methylsulphate',
+                'sku' => 'MED-VIS-007',
+                'barcode' => '894110200007',
+                'generic' => 'Tiemonium Methylsulphate',
+                'category' => 'gastrointestinal',
+                'mfg' => 'Popular Pharmaceuticals Ltd.',
+                'form' => 'Tablet',
+                'primary_unit' => 'Box',
+                'secondary_unit' => 'Strip',
+                'conversion_rate' => 5,
+                'strength' => '50mg',
+                'min_stock' => 40,
+                'is_rx' => true,
+                'batches' => [
+                    ['batch' => 'VS2026', 'days' => 210, 'cost' => 6.50, 'sell' => 9.00, 'qty' => 300],
+                ],
+            ],
+            [
+                'name' => 'Avolac 3.35 gm/5 ml Solution',
+                'brand_name' => 'Avolac Lactulose Solution',
+                'sku' => 'MED-AVO-008',
+                'barcode' => '894110200008',
+                'generic' => 'Lactulose Solution',
+                'category' => 'gastrointestinal',
+                'mfg' => 'Square Pharmaceuticals Ltd.',
+                'form' => 'Oral Solution',
+                'primary_unit' => 'Bottle',
+                'secondary_unit' => 'Bottle',
+                'conversion_rate' => 1,
+                'strength' => '3.35g/5ml (100ml)',
+                'min_stock' => 20,
+                'is_rx' => false,
+                'batches' => [
+                    ['batch' => 'AV9901', 'days' => 260, 'cost' => 110.00, 'sell' => 145.00, 'qty' => 80],
+                ],
+            ],
+            [
+                'name' => 'Bexidal 50mg',
+                'brand_name' => 'Bexidal Mebhydrolin',
+                'sku' => 'MED-BEX-009',
+                'barcode' => '894110200009',
+                'generic' => 'Mebhydrolin Napadisylate',
+                'category' => 'respiratory',
+                'mfg' => 'Beximco Pharmaceuticals Ltd.',
+                'form' => 'Tablet',
+                'primary_unit' => 'Box',
+                'secondary_unit' => 'Strip',
+                'conversion_rate' => 3,
+                'strength' => '50mg',
+                'min_stock' => 30,
+                'is_rx' => false,
+                'batches' => [
+                    ['batch' => 'BX1102', 'days' => 320, 'cost' => 4.00, 'sell' => 5.50, 'qty' => 220],
+                ],
+            ],
+
+            // Other general medications
             [
                 'name' => 'Napa Extra',
                 'brand_name' => 'Napa Extra 500mg/65mg',
@@ -264,7 +457,7 @@ class DatabaseSeeder extends Seeder
                 'form' => 'Tablet',
                 'primary_unit' => 'Box',
                 'secondary_unit' => 'Strip',
-                'conversion_rate' => 20, // 20 strips per box
+                'conversion_rate' => 20,
                 'strength' => '500mg + 65mg',
                 'min_stock' => 50,
                 'is_rx' => false,
@@ -310,27 +503,6 @@ class DatabaseSeeder extends Seeder
                 'is_rx' => false,
                 'batches' => [
                     ['batch' => 'SC99102', 'days' => 45, 'cost' => 4.20, 'sell' => 6.00, 'qty' => 240],
-                    ['batch' => 'SC99105', 'days' => 240, 'cost' => 4.20, 'sell' => 6.00, 'qty' => 500],
-                ],
-            ],
-            [
-                'name' => 'Maxpro 20mg',
-                'brand_name' => 'Maxpro Esomeprazole',
-                'sku' => 'MED-MAX-020',
-                'barcode' => '894110030020',
-                'generic' => 'Esomeprazole',
-                'category' => 'gastrointestinal',
-                'mfg' => 'Square Pharmaceuticals Ltd.',
-                'form' => 'Tablet',
-                'primary_unit' => 'Box',
-                'secondary_unit' => 'Strip',
-                'conversion_rate' => 10,
-                'strength' => '20mg',
-                'min_stock' => 40,
-                'is_rx' => false,
-                'batches' => [
-                    ['batch' => 'MP8841', 'days' => 25, 'cost' => 5.50, 'sell' => 7.50, 'qty' => 85],
-                    ['batch' => 'MP8890', 'days' => 300, 'cost' => 5.50, 'sell' => 7.50, 'qty' => 400],
                 ],
             ],
             [
@@ -351,7 +523,6 @@ class DatabaseSeeder extends Seeder
                 'batches' => [
                     ['batch' => 'FX351081', 'days' => 16, 'cost' => 7.00, 'sell' => 9.50, 'qty' => 30],
                     ['batch' => 'FX501061', 'days' => 60, 'cost' => 7.00, 'sell' => 9.50, 'qty' => 150],
-                    ['batch' => 'FX901022', 'days' => 365, 'cost' => 7.00, 'sell' => 9.50, 'qty' => 320],
                 ],
             ],
             [
@@ -371,45 +542,6 @@ class DatabaseSeeder extends Seeder
                 'is_rx' => true,
                 'batches' => [
                     ['batch' => 'CP77102', 'days' => 28, 'cost' => 12.00, 'sell' => 16.00, 'qty' => 45],
-                    ['batch' => 'CP77509', 'days' => 400, 'cost' => 12.00, 'sell' => 16.00, 'qty' => 200],
-                ],
-            ],
-            [
-                'name' => 'Azithrox 500mg',
-                'brand_name' => 'Azithrox Azithromycin',
-                'sku' => 'MED-AZI-500',
-                'barcode' => '894110060500',
-                'generic' => 'Azithromycin',
-                'category' => 'antibiotics',
-                'mfg' => 'Incepta Pharmaceuticals Ltd.',
-                'form' => 'Tablet',
-                'primary_unit' => 'Box',
-                'secondary_unit' => 'Strip',
-                'conversion_rate' => 3,
-                'strength' => '500mg',
-                'min_stock' => 15,
-                'is_rx' => true,
-                'batches' => [
-                    ['batch' => 'AZ44101', 'days' => 120, 'cost' => 28.00, 'sell' => 35.00, 'qty' => 110],
-                ],
-            ],
-            [
-                'name' => 'Monas 10mg',
-                'brand_name' => 'Monas Montelukast',
-                'sku' => 'MED-MON-010',
-                'barcode' => '894110070010',
-                'generic' => 'Montelukast Sodium',
-                'category' => 'respiratory',
-                'mfg' => 'Incepta Pharmaceuticals Ltd.',
-                'form' => 'Tablet',
-                'primary_unit' => 'Box',
-                'secondary_unit' => 'Strip',
-                'conversion_rate' => 3,
-                'strength' => '10mg',
-                'min_stock' => 20,
-                'is_rx' => true,
-                'batches' => [
-                    ['batch' => 'MN8819', 'days' => 180, 'cost' => 12.50, 'sell' => 16.00, 'qty' => 130],
                 ],
             ],
             [
@@ -429,64 +561,6 @@ class DatabaseSeeder extends Seeder
                 'is_rx' => false,
                 'batches' => [
                     ['batch' => 'ANT2201', 'days' => 210, 'cost' => 65.00, 'sell' => 85.00, 'qty' => 60],
-                ],
-            ],
-            [
-                'name' => 'Lipitor 20mg',
-                'brand_name' => 'Lipitor Atorvastatin',
-                'sku' => 'MED-LIP-020',
-                'barcode' => '894110090020',
-                'generic' => 'Atorvastatin Calcium',
-                'category' => 'cardiovascular',
-                'mfg' => 'Pfizer Global Healthcare',
-                'form' => 'Tablet',
-                'primary_unit' => 'Box',
-                'secondary_unit' => 'Strip',
-                'conversion_rate' => 3,
-                'strength' => '20mg',
-                'min_stock' => 15,
-                'is_rx' => true,
-                'batches' => [
-                    ['batch' => 'PFZ-LIP-89', 'days' => 350, 'cost' => 22.00, 'sell' => 30.00, 'qty' => 95],
-                ],
-            ],
-            [
-                'name' => 'Ecosprin 75mg',
-                'brand_name' => 'Ecosprin Low Dose',
-                'sku' => 'MED-ECO-075',
-                'barcode' => '894110100075',
-                'generic' => 'Aspirin (Acetylsalicylic Acid)',
-                'category' => 'cardiovascular',
-                'mfg' => 'Square Pharmaceuticals Ltd.',
-                'form' => 'Tablet',
-                'primary_unit' => 'Box',
-                'secondary_unit' => 'Strip',
-                'conversion_rate' => 10,
-                'strength' => '75mg',
-                'min_stock' => 40,
-                'is_rx' => false,
-                'batches' => [
-                    ['batch' => 'EC5519', 'days' => 190, 'cost' => 0.60, 'sell' => 0.85, 'qty' => 300],
-                ],
-            ],
-            [
-                'name' => 'Warf-5 (Warfarin 5mg)',
-                'brand_name' => 'Warf Anticoagulant',
-                'sku' => 'MED-WRF-005',
-                'barcode' => '894110110005',
-                'generic' => 'Warfarin Sodium',
-                'category' => 'cardiovascular',
-                'mfg' => 'Renata Limited',
-                'form' => 'Tablet',
-                'primary_unit' => 'Box',
-                'secondary_unit' => 'Strip',
-                'conversion_rate' => 3,
-                'strength' => '5mg',
-                'min_stock' => 10,
-                'is_rx' => true,
-                'is_controlled' => true,
-                'batches' => [
-                    ['batch' => 'WRF-901', 'days' => 150, 'cost' => 6.00, 'sell' => 8.50, 'qty' => 75],
                 ],
             ],
         ];
@@ -535,10 +609,9 @@ class DatabaseSeeder extends Seeder
 
         // 9. Customers
         $customers = [
+            ['name' => 'Mrs. Shamima Yasmin', 'phone' => '+880 1711-310326', 'email' => 'shamima.yasmin@gmail.com', 'credit' => 0.00, 'limit' => 5000, 'loyalty' => 150],
             ['name' => 'Zubair Al-Hassan', 'phone' => '+880 1711-234567', 'email' => 'zubair@example.com', 'credit' => 0.00, 'limit' => 5000, 'loyalty' => 120],
             ['name' => 'Samantha Reed', 'phone' => '+880 1812-987654', 'email' => 'samantha.r@example.com', 'credit' => 240.00, 'limit' => 3000, 'loyalty' => 85],
-            ['name' => 'Tariq Mehmood', 'phone' => '+880 1913-456789', 'email' => 'tariq.m@example.com', 'credit' => 0.00, 'limit' => 8000, 'loyalty' => 450],
-            ['name' => 'Ayesha Siddiqua', 'phone' => '+880 1614-112233', 'email' => 'ayesha.s@example.com', 'credit' => 150.00, 'limit' => 4000, 'loyalty' => 90],
         ];
 
         $customerModels = [];
@@ -556,9 +629,8 @@ class DatabaseSeeder extends Seeder
         // 10. Sample Recent POS Sales for Analytics
         $napaExtra = Medicine::where('sku', 'MED-NAP-001')->first();
         $seclo = Medicine::where('sku', 'MED-SEC-020')->first();
-        $fexo = Medicine::where('sku', 'MED-FEX-120')->first();
 
-        if ($napaExtra && $seclo && $fexo) {
+        if ($napaExtra && $seclo) {
             $sale1 = Sale::create([
                 'invoice_number' => 'INV-20260906-0001',
                 'customer_id' => $customerModels[0]->id,
@@ -579,7 +651,6 @@ class DatabaseSeeder extends Seeder
             ]);
 
             $batch1 = $napaExtra->batches()->first();
-            $batch2 = $seclo->batches()->first();
 
             if ($batch1) {
                 SaleItem::create([
@@ -593,21 +664,6 @@ class DatabaseSeeder extends Seeder
                     'discount_amount' => 0,
                     'tax_amount' => 2.10,
                     'total_price' => 15 * $batch1->selling_price,
-                ]);
-            }
-
-            if ($batch2) {
-                SaleItem::create([
-                    'sale_id' => $sale1->id,
-                    'medicine_id' => $seclo->id,
-                    'batch_id' => $batch2->id,
-                    'unit_name' => 'Strip',
-                    'quantity' => 12,
-                    'unit_price' => $batch2->selling_price,
-                    'cost_price' => $batch2->cost_price,
-                    'discount_amount' => 0,
-                    'tax_amount' => 3.60,
-                    'total_price' => 12 * $batch2->selling_price,
                 ]);
             }
 
@@ -625,7 +681,7 @@ class DatabaseSeeder extends Seeder
             'action' => 'system_seed_init',
             'entity_type' => 'System',
             'entity_id' => 1,
-            'new_values' => ['status' => 'Master pharmaceutical catalog initialized successfully.'],
+            'new_values' => ['status' => 'Master pharmaceutical catalog initialized successfully with Antenatal and Obstetric extensions.'],
             'ip_address' => '127.0.0.1',
             'user_agent' => 'PharmaCare AI Clinical Engine/1.0',
             'created_at' => Carbon::now(),

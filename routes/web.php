@@ -32,6 +32,7 @@ Route::prefix('pos')->name('pos.')->group(function () {
 Route::prefix('prescriptions')->name('prescriptions.')->group(function () {
     Route::get('/', [PrescriptionController::class, 'index'])->name('index');
     Route::post('/parse-image', [PrescriptionController::class, 'parseImage'])->name('parse-image');
+    Route::post('/save-ai-key', [PrescriptionController::class, 'saveAiKey'])->name('save-ai-key');
     Route::patch('/{prescription}/status', [PrescriptionController::class, 'updateStatus'])->name('update-status');
 });
 

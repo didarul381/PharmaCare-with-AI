@@ -126,6 +126,29 @@ export default function PosIndex({ medicines, customers, categories }: Props) {
 
     const searchInputRef = useRef<HTMLInputElement>(null);
 
+    // Auto-load items transferred from AI Prescription Scanner
+    useEffect(() => {
+        try {
+            const transferred = localStorage.getItem('pharmacare_transferred_cart');
+            if (transferred) {
+                const parsed = JSON.parse(transferred);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    setCart(parsed);
+                    localStorage.removeItem('pharmacare_transferred_cart');
+                }
+            }
+
+            const transferredCustomer = localStorage.getItem('pharmacare_transferred_customer_name');
+            if (transferredCustomer) {
+                const found = customers.find(c => c.name.toLowerCase().includes(transferredCustomer.toLowerCase()));
+                if (found) {
+                    setSelectedCustomer(found);
+                }
+                localStorage.removeItem('pharmacare_transferred_customer_name');
+            }
+        } catch {}
+    }, []);
+
     // Sync held orders to localStorage
     useEffect(() => {
         try {

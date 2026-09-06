@@ -146,4 +146,31 @@ class PharmacyEngineTest extends TestCase
         $this->assertCount(12, $topItem['monthly_forecast']);
         $this->assertArrayHasKey('suggested_order_qty', $topItem);
     }
+
+    /**
+     * Test AI Prescription OCR Parser & API Key Configuration.
+     */
+    public function test_prescription_parser_and_api_key_configuration(): void
+    {
+        $user = User::firstOrFail();
+
+        // 1. Test saving API key via API endpoint
+        $response = $this->actingAs($user)->postJson('/prescriptions/save-ai-key', [
+            'gemini_api_key' => 'AIzaSyDemoTestKey1234567890',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('ai_config.has_gemini', true);
+
+        // 2. Test prescription parser returns 9 items for Dr. Joysree Saha preset
+        /** @var \App\Services\Ai\PrescriptionParserService $parserService */
+        $parserService = app(\App\Services\Ai\PrescriptionParserService::class);
+        $parsed = $parserService->parsePrescription('sample_joysree', $user);
+
+        $this->assertEquals('Prof. Dr. Joysree Saha', $parsed['doctor']['name']);
+        $this->assertEquals('Mrs. Shamima Yasmin', $parsed['patient']['name']);
+        $this->assertCount(9, $parsed['matched_items']);
+        $this->assertNotEmpty($parsed['matched_items'][0]['medicine']);
+    }
 }
