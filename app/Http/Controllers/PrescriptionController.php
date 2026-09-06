@@ -111,6 +111,53 @@ class PrescriptionController extends Controller
         }
     }
 
+    public function show(Prescription $prescription): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'prescription' => $prescription->load(['customer', 'user', 'items.medicine.genericName', 'items.medicine.batches']),
+        ]);
+    }
+
+    public function destroy(Prescription $prescription): JsonResponse
+    {
+        $prescription->items()->delete();
+        $prescription->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Prescription #{$prescription->prescription_number} deleted successfully.",
+        ]);
+    }
+
+    public function clearAll(): JsonResponse
+    {
+        $count = Prescription::count();
+        PrescriptionItem::truncate();
+        Prescription::truncate();
+
+        return response()->json([
+            'success' => true,
+            'message' => "All {$count} prescription records have been cleared.",
+        ]);
+    }
+
+    public function bulkDelete(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:prescriptions,id',
+        ]);
+
+        PrescriptionItem::whereIn('prescription_id', $validated['ids'])->delete();
+        Prescription::whereIn('id', $validated['ids'])->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => count($validated['ids']) . ' prescriptions deleted successfully.',
+        ]);
+    }
+
     public function updateStatus(Request $request, Prescription $prescription): JsonResponse
     {
         $validated = $request->validate([

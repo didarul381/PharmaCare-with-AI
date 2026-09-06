@@ -30,7 +30,15 @@ import {
     HelpCircle,
     Cpu,
     Zap,
-    Save
+    Save,
+    Trash2,
+    Search,
+    Filter,
+    CheckSquare,
+    Square,
+    RotateCcw,
+    Pill,
+    SlidersHorizontal
 } from 'lucide-react';
 import { Prescription, Customer } from '@/types';
 import { formatDate, formatCurrency, cn } from '@/lib/utils';
@@ -76,6 +84,21 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
     });
 
     const [scanError, setScanError] = useState<string | null>(null);
+
+    // Registry Table & Actions State
+    const [rxList, setRxList] = useState<Prescription[]>(prescriptions || []);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'verified' | 'dispensed' | 'pending'>('all');
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [viewRxModal, setViewRxModal] = useState<Prescription | null>(null);
+    const [showClearAllModal, setShowClearAllModal] = useState(false);
+    const [isProcessingAction, setIsProcessingAction] = useState(false);
+    const [actionToast, setActionToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    const showToast = (text: string, type: 'success' | 'error' = 'success') => {
+        setActionToast({ type, text });
+        setTimeout(() => setActionToast(null), 3500);
+    };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -186,43 +209,159 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
         }
     };
 
-    const handleQuantityChange = (idx: number, delta: number) => {
-        if (!scannedResult) return;
-        const newItems = [...scannedResult.matched_items];
-        const newQty = Math.max(1, (newItems[idx].quantity || 1) + delta);
-        newItems[idx] = { ...newItems[idx], quantity: newQty };
-        setScannedResult({ ...scannedResult, matched_items: newItems });
+    const filteredPrescriptions = rxList.filter((rx) => {
+        const query = searchQuery.toLowerCase().trim();
+        const matchesQuery =
+            !query ||
+            (rx.prescription_number || '').toLowerCase().includes(query) ||
+            (rx.doctor_name || '').toLowerCase().includes(query) ||
+            (rx.hospital_name || '').toLowerCase().includes(query) ||
+            (rx.customer?.name || '').toLowerCase().includes(query);
+
+        const matchesStatus = statusFilter === 'all' || rx.status === statusFilter;
+
+        return matchesQuery && matchesStatus;
+    });
+
+    const handleDeleteSingle = async (id: number) => {
+        if (!confirm('Are you sure you want to delete this prescription log?')) return;
+        setIsProcessingAction(true);
+        try {
+            const res = await fetch(`/prescriptions/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                },
+            });
+            const data = await res.json();
+            if (data.success) {
+                setRxList((prev) => prev.filter((item) => item.id !== id));
+                setSelectedIds((prev) => prev.filter((item) => item !== id));
+                showToast(data.message || 'Prescription deleted.');
+            }
+        } catch (err: any) {
+            showToast('Delete failed: ' + err.message, 'error');
+        } finally {
+            setIsProcessingAction(false);
+        }
     };
 
-    const handlePushToPos = () => {
-        if (!scannedResult || !scannedResult.matched_items) return;
+    const handleClearAll = async () => {
+        setIsProcessingAction(true);
+        try {
+            const res = await fetch('/prescriptions/clear-all', {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                },
+            });
+            const data = await res.json();
+            if (data.success) {
+                setRxList([]);
+                setSelectedIds([]);
+                setShowClearAllModal(false);
+                showToast(data.message || 'All prescription records cleared successfully.');
+            }
+        } catch (err: any) {
+            showToast('Clear all failed: ' + err.message, 'error');
+        } finally {
+            setIsProcessingAction(false);
+        }
+    };
 
-        // Filter valid matched medicines
-        const cartItems = scannedResult.matched_items
-            .filter((item: any) => item.medicine)
-            .map((item: any) => ({
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        if (!confirm(`Are you sure you want to delete ${selectedIds.length} selected prescriptions?`)) return;
+
+        setIsProcessingAction(true);
+        try {
+            const res = await fetch('/prescriptions/bulk-delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                },
+                body: JSON.stringify({ ids: selectedIds }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setRxList((prev) => prev.filter((item) => !selectedIds.includes(item.id)));
+                setSelectedIds([]);
+                showToast(data.message || 'Selected records deleted.');
+            }
+        } catch (err: any) {
+            showToast('Bulk delete failed: ' + err.message, 'error');
+        } finally {
+            setIsProcessingAction(false);
+        }
+    };
+
+    const handleToggleStatus = async (rx: Prescription) => {
+        const nextStatus = rx.status === 'dispensed' ? 'verified' : 'dispensed';
+        try {
+            const res = await fetch(`/prescriptions/${rx.id}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                },
+                body: JSON.stringify({ status: nextStatus }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setRxList((prev) =>
+                    prev.map((item) => (item.id === rx.id ? { ...item, status: nextStatus as any } : item))
+                );
+                showToast(`Prescription #${rx.prescription_number} status updated to ${nextStatus}.`);
+            }
+        } catch (err: any) {
+            showToast('Status update failed: ' + err.message, 'error');
+        }
+    };
+
+    const handlePushSavedRxToPos = (rx: Prescription) => {
+        if (!rx.items || rx.items.length === 0) {
+            alert('No prescribed medicines found in this record to transfer.');
+            return;
+        }
+
+        const cartItems = rx.items
+            .filter((item) => item.medicine)
+            .map((item) => ({
                 medicine: item.medicine,
-                quantity: item.quantity,
-                unit_price: item.medicine.selling_price || 10.00,
-                unit_name: item.medicine.unit_name || 'Strip',
+                quantity: item.quantity || 1,
+                unit_price: (item.medicine as any)?.selling_price || item.medicine?.current_selling_price || 10.0,
+                unit_name: (item.medicine as any)?.unit_name || 'Strip',
                 discount: 0,
             }));
 
         if (cartItems.length === 0) {
-            alert('No matched medicines found in inventory to transfer to cart.');
+            alert('Prescription items could not be mapped to catalog inventory.');
             return;
         }
 
-        // Store into localStorage for POS consumption
         try {
             localStorage.setItem('pharmacare_transferred_cart', JSON.stringify(cartItems));
-            if (scannedResult.patient) {
-                localStorage.setItem('pharmacare_transferred_customer_name', scannedResult.patient.name);
+            if (rx.customer?.name) {
+                localStorage.setItem('pharmacare_transferred_customer_name', rx.customer.name);
             }
         } catch {}
 
-        // Navigate to POS terminal
         router.visit('/pos');
+    };
+
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            setSelectedIds(filteredPrescriptions.map((rx) => rx.id));
+        } else {
+            setSelectedIds([]);
+        }
+    };
+
+    const handleSelectRow = (id: number) => {
+        setSelectedIds((prev) =>
+            prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+        );
     };
 
     return (
@@ -275,6 +414,19 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
             }
         >
             <Head title="AI Prescription OCR & Digitizer" />
+
+            {/* Action Toast Alert */}
+            {actionToast && (
+                <div className={cn(
+                    "fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-2xl animate-in slide-in-from-top-3 border",
+                    actionToast.type === 'success'
+                        ? "bg-emerald-950/90 text-emerald-300 border-emerald-500/40 shadow-glow-emerald"
+                        : "bg-red-950/90 text-red-300 border-red-500/40"
+                )}>
+                    {actionToast.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <AlertCircle className="w-4 h-4 text-red-400" />}
+                    <span>{actionToast.text}</span>
+                </div>
+            )}
 
             {/* AI Vision API Key Management & Instructions Banner */}
             <div className="mb-6 rounded-3xl glass-panel border border-cyan-500/30 bg-gradient-to-r from-slate-900/95 via-[#0c1626]/90 to-slate-900/95 p-5 shadow-2xl relative overflow-hidden">
@@ -776,65 +928,414 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                 </div>
             </div>
 
-            {/* Prescriptions History Archive */}
-            <div className="glass-panel rounded-3xl p-5 border border-slate-800/80">
-                <div className="flex items-center justify-between mb-4">
-                    <div>
-                        <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-cyan-400" />
-                            Prescriptions Registry & Dispensing Log
-                        </h2>
-                        <p className="text-[11px] text-slate-400">Historical archive of uploaded medical prescriptions</p>
+            {/* Prescriptions History Archive & Action Center (User Red Box) */}
+            <div className="glass-panel rounded-3xl p-6 border border-slate-800/90 shadow-2xl bg-gradient-to-b from-slate-900/90 to-[#080d17]">
+                {/* Header & Control Bar */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-800">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-glow-cyan">
+                            <FileText className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-base font-black text-white tracking-tight">
+                                    Prescriptions Registry & Dispensing Log
+                                </h2>
+                                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                                    {rxList.length} Total Logs
+                                </span>
+                            </div>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                                Review scanned prescriptions, inspect clinical findings, transfer to POS dispensing cart, or manage records
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Action Buttons Toolbar */}
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        {selectedIds.length > 0 && (
+                            <button
+                                onClick={handleBulkDelete}
+                                disabled={isProcessingAction}
+                                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 flex items-center gap-2 transition"
+                            >
+                                <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                                <span>Delete Selected ({selectedIds.length})</span>
+                            </button>
+                        )}
+
+                        {rxList.length > 0 && (
+                            <button
+                                onClick={() => setShowClearAllModal(true)}
+                                disabled={isProcessingAction}
+                                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/40 flex items-center gap-2 transition"
+                            >
+                                <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                                <span>Clear All Logs</span>
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                {/* Filter & Live Search Toolbar */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-3 mb-4">
+                    {/* Live Search Input */}
+                    <div className="relative w-full md:w-80">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search Rx #, Doctor, Hospital, Patient..."
+                            className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950/80 border border-slate-700/80 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 font-medium"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Status Filter Tabs */}
+                    <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-950/80 border border-slate-800 self-start md:self-auto">
+                        {(['all', 'verified', 'dispensed', 'pending'] as const).map((st) => (
+                            <button
+                                key={st}
+                                onClick={() => setStatusFilter(st)}
+                                className={cn(
+                                    "px-3 py-1 rounded-lg text-xs font-bold capitalize transition",
+                                    statusFilter === st
+                                        ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                                        : "text-slate-400 hover:text-white"
+                                )}
+                            >
+                                {st} {st === 'all' ? `(${rxList.length})` : `(${rxList.filter(r => r.status === st).length})`}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto rounded-2xl border border-slate-800/80 bg-slate-950/40">
                     <table className="w-full text-left text-xs">
                         <thead>
-                            <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase text-[10px] font-bold">
-                                <th className="py-3 px-4">Prescription #</th>
-                                <th className="py-3 px-4">Doctor & Hospital</th>
-                                <th className="py-3 px-4">Customer</th>
-                                <th className="py-3 px-4">Date</th>
-                                <th className="py-3 px-4">Items Count</th>
+                            <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase text-[10px] font-black tracking-wider">
+                                <th className="py-3 px-3.5 w-10">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedIds.length > 0 && selectedIds.length === filteredPrescriptions.length}
+                                        onChange={handleSelectAll}
+                                        className="rounded bg-slate-900 border-slate-700 text-cyan-500 focus:ring-0 cursor-pointer"
+                                    />
+                                </th>
+                                <th className="py-3 px-3">Prescription #</th>
+                                <th className="py-3 px-4">Doctor & Clinic</th>
+                                <th className="py-3 px-4">Patient / Customer</th>
+                                <th className="py-3 px-4">Date & Time</th>
+                                <th className="py-3 px-4">Medications</th>
                                 <th className="py-3 px-4">Status</th>
+                                <th className="py-3 px-4 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800/60 font-sans">
-                            {prescriptions.map((rx) => (
-                                <tr key={rx.id} className="hover:bg-slate-800/30 transition">
-                                    <td className="py-3 px-4 font-mono font-bold text-cyan-300">
-                                        {rx.prescription_number}
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <span className="font-bold text-white block">{rx.doctor_name || 'General Practitioner'}</span>
-                                        <span className="text-[11px] text-slate-400">{rx.hospital_name || 'Hospital Registry'}</span>
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-300">
-                                        {rx.customer?.name || 'Walk-in Patient'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-400">
-                                        {formatDate(rx.created_at)}
-                                    </td>
-                                    <td className="py-3 px-4 font-bold text-white">
-                                        {rx.items?.length || 0} Drugs
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <span className={cn(
-                                            "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase",
-                                            rx.status === 'dispensed'
-                                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                                : "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
-                                        )}>
-                                            {rx.status}
-                                        </span>
+                        <tbody className="divide-y divide-slate-800/50 font-sans">
+                            {filteredPrescriptions.length > 0 ? (
+                                filteredPrescriptions.map((rx) => {
+                                    const isSelected = selectedIds.includes(rx.id);
+                                    return (
+                                        <tr
+                                            key={rx.id}
+                                            className={cn(
+                                                "hover:bg-slate-800/40 transition group",
+                                                isSelected && "bg-cyan-950/20"
+                                            )}
+                                        >
+                                            <td className="py-3 px-3.5">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => handleSelectRow(rx.id)}
+                                                    className="rounded bg-slate-900 border-slate-700 text-cyan-500 focus:ring-0 cursor-pointer"
+                                                />
+                                            </td>
+
+                                            <td className="py-3 px-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono font-bold text-cyan-300 text-xs">
+                                                        {rx.prescription_number}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            <td className="py-3 px-4">
+                                                <span className="font-bold text-white block text-xs">
+                                                    {rx.doctor_name || 'General Practitioner'}
+                                                </span>
+                                                <span className="text-[11px] text-slate-400 block truncate max-w-[220px]">
+                                                    {rx.hospital_name || 'Medical Clinic'}
+                                                </span>
+                                            </td>
+
+                                            <td className="py-3 px-4">
+                                                <span className="font-semibold text-slate-200 block text-xs">
+                                                    {rx.customer?.name || (rx.ai_extracted_data as any)?.patient?.name || 'Walk-in Patient'}
+                                                </span>
+                                                <span className="text-[10px] text-slate-500 font-mono">
+                                                    {(rx.ai_extracted_data as any)?.patient?.age ? `${(rx.ai_extracted_data as any).patient.age}, ${(rx.ai_extracted_data as any).patient.gender || ''}` : 'Patient ID: ' + rx.id}
+                                                </span>
+                                            </td>
+
+                                            <td className="py-3 px-4 text-slate-400 text-[11px]">
+                                                {formatDate(rx.created_at)}
+                                            </td>
+
+                                            <td className="py-3 px-4">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="px-2.5 py-0.5 rounded-lg text-xs font-black bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                                                        <Pill className="w-3 h-3 text-cyan-400" />
+                                                        {rx.items?.length || 0} Drugs
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            <td className="py-3 px-4">
+                                                <button
+                                                    onClick={() => handleToggleStatus(rx)}
+                                                    title="Click to toggle status"
+                                                    className={cn(
+                                                        "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase transition flex items-center gap-1 cursor-pointer hover:opacity-80",
+                                                        rx.status === 'dispensed'
+                                                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                                            : rx.status === 'verified'
+                                                            ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                                                            : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                                    )}
+                                                >
+                                                    <span className={cn(
+                                                        "w-1.5 h-1.5 rounded-full",
+                                                        rx.status === 'dispensed' ? "bg-emerald-400" : "bg-cyan-400"
+                                                    )} />
+                                                    {rx.status}
+                                                </button>
+                                            </td>
+
+                                            <td className="py-3 px-4 text-right">
+                                                <div className="flex items-center justify-end gap-1.5 opacity-90 group-hover:opacity-100">
+                                                    {/* View Prescription Details */}
+                                                    <button
+                                                        onClick={() => setViewRxModal(rx)}
+                                                        title="View Prescription Details & Rx Items"
+                                                        className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
+                                                    >
+                                                        <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                                                    </button>
+
+                                                    {/* Push Directly to POS Cart */}
+                                                    <button
+                                                        onClick={() => handlePushSavedRxToPos(rx)}
+                                                        title="Push All Items to POS Cart & Dispense"
+                                                        className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5 transition shadow-glow-emerald"
+                                                    >
+                                                        <ShoppingCart className="w-3.5 h-3.5 text-emerald-400" />
+                                                        <span className="hidden sm:inline">Push to POS</span>
+                                                    </button>
+
+                                                    {/* Delete Single Record */}
+                                                    <button
+                                                        onClick={() => handleDeleteSingle(rx.id)}
+                                                        title="Delete Record"
+                                                        className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            ) : (
+                                <tr>
+                                    <td colSpan={8} className="py-12 text-center text-slate-500">
+                                        <FileText className="w-10 h-10 mx-auto stroke-[1.2] text-slate-700 mb-2" />
+                                        <p className="text-xs font-semibold text-slate-400">No prescriptions found</p>
+                                        <p className="text-[11px] text-slate-600 mt-0.5">
+                                            {searchQuery ? 'Try adjusting your search filter' : 'Scanned prescription records will be cataloged here'}
+                                        </p>
                                     </td>
                                 </tr>
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 </div>
             </div>
+
+            {/* Modal: View Prescription Details */}
+            {viewRxModal && (
+                <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-base font-black text-white">
+                                        Prescription #{viewRxModal.prescription_number}
+                                    </h3>
+                                    <span className={cn(
+                                        "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                                        viewRxModal.status === 'dispensed'
+                                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                            : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                                    )}>
+                                        {viewRxModal.status}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                    Created on {formatDate(viewRxModal.created_at)}
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => setViewRxModal(null)}
+                                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {/* Doctor & Patient Info */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
+                                <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                                    <Stethoscope className="w-3.5 h-3.5" /> Doctor Info
+                                </span>
+                                <p className="text-xs font-bold text-white">{viewRxModal.doctor_name || 'Medical Practitioner'}</p>
+                                <p className="text-[11px] text-slate-400">{viewRxModal.hospital_name || 'Popular Medical College'}</p>
+                                {viewRxModal.doctor_reg_number && (
+                                    <p className="text-[10px] text-cyan-400 font-mono">Reg: {viewRxModal.doctor_reg_number}</p>
+                                )}
+                            </div>
+
+                            <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
+                                <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                                    <User className="w-3.5 h-3.5" /> Patient Info
+                                </span>
+                                <p className="text-xs font-bold text-white">
+                                    {viewRxModal.customer?.name || (viewRxModal.ai_extracted_data as any)?.patient?.name || 'Walk-in Patient'}
+                                </p>
+                                <p className="text-[11px] text-slate-400">
+                                    {(viewRxModal.ai_extracted_data as any)?.patient?.address || 'Matuail, Dhaka'}
+                                </p>
+                                {(viewRxModal.ai_extracted_data as any)?.patient?.diagnosis && (
+                                    <p className="text-[10px] text-emerald-400">
+                                        Diagnosis: {(viewRxModal.ai_extracted_data as any).patient.diagnosis}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Medicines List */}
+                        <div>
+                            <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                                Prescribed Medications ({viewRxModal.items?.length || 0})
+                            </h4>
+                            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                {viewRxModal.items?.map((item, idx) => (
+                                    <div key={idx} className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 flex items-center justify-between gap-3">
+                                        <div>
+                                            <p className="text-xs font-bold text-white">
+                                                {item.medicine?.name || item.drug_name_raw}
+                                            </p>
+                                            <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                                <span className="text-cyan-300 font-medium">Dose: {item.frequency || '1+0+1'}</span>
+                                                <span>Qty: {item.quantity || 1} units</span>
+                                                {item.instructions && <span className="text-slate-500">{item.instructions}</span>}
+                                            </div>
+                                        </div>
+
+                                        <div className="text-right shrink-0">
+                                            <span className="text-xs font-bold text-emerald-400 block">
+                                                {formatCurrency(((item.medicine as any)?.selling_price || item.medicine?.current_selling_price || 10.0) * (item.quantity || 1))}
+                                            </span>
+                                            <span className="text-[10px] text-slate-400">
+                                                Stock: {item.medicine?.total_stock || 0}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Modal Footer Actions */}
+                        <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+                            <button
+                                onClick={() => handleDeleteSingle(viewRxModal.id)}
+                                className="px-4 py-2 rounded-xl text-xs font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1.5 transition"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Delete Record</span>
+                            </button>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setViewRxModal(null)}
+                                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const current = viewRxModal;
+                                        setViewRxModal(null);
+                                        handlePushSavedRxToPos(current);
+                                    }}
+                                    className="px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-glow-emerald flex items-center gap-1.5 hover:from-emerald-400 hover:to-teal-400 transition"
+                                >
+                                    <ShoppingCart className="w-3.5 h-3.5" />
+                                    <span>Push to POS Cart & Dispense</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal: Confirm Clear All */}
+            {showClearAllModal && (
+                <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+                    <div className="bg-slate-900 border border-red-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95">
+                        <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 mx-auto">
+                            <Trash2 className="w-6 h-6" />
+                        </div>
+                        <div className="text-center space-y-1">
+                            <h3 className="text-base font-black text-white">
+                                Clear All Prescription Logs?
+                            </h3>
+                            <p className="text-xs text-slate-400">
+                                This will permanently delete all <strong>{rxList.length}</strong> prescription registry entries and their item line histories. This action cannot be undone.
+                            </p>
+                        </div>
+
+                        <div className="flex items-center justify-center gap-3 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowClearAllModal(false)}
+                                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleClearAll}
+                                disabled={isProcessingAction}
+                                className="px-5 py-2 rounded-xl text-xs font-black bg-red-500 hover:bg-red-400 text-white transition shadow-lg shadow-red-500/20"
+                            >
+                                {isProcessingAction ? 'Clearing...' : 'Yes, Clear All Logs'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AuthenticatedLayout>
     );
 }

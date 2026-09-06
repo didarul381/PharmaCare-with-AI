@@ -33,6 +33,10 @@ Route::prefix('prescriptions')->name('prescriptions.')->group(function () {
     Route::get('/', [PrescriptionController::class, 'index'])->name('index');
     Route::post('/parse-image', [PrescriptionController::class, 'parseImage'])->name('parse-image');
     Route::post('/save-ai-key', [PrescriptionController::class, 'saveAiKey'])->name('save-ai-key');
+    Route::delete('/clear-all', [PrescriptionController::class, 'clearAll'])->name('clear-all');
+    Route::post('/bulk-delete', [PrescriptionController::class, 'bulkDelete'])->name('bulk-delete');
+    Route::get('/{prescription}', [PrescriptionController::class, 'show'])->name('show');
+    Route::delete('/{prescription}', [PrescriptionController::class, 'destroy'])->name('destroy');
     Route::patch('/{prescription}/status', [PrescriptionController::class, 'updateStatus'])->name('update-status');
 });
 
