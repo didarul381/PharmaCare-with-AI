@@ -140,7 +140,164 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
     };
 
     const handlePrintTrigger = () => {
-        window.print();
+        const targetElement = printTemplate === 'a4' 
+            ? document.getElementById('printable-invoice')
+            : document.getElementById('printable-thermal');
+
+        if (!targetElement) {
+            window.print();
+            return;
+        }
+
+        const isThermal = printTemplate === 'thermal80' || printTemplate === 'thermal58';
+        const pageSize = printTemplate === 'a4' ? 'A4 portrait' : printTemplate === 'thermal80' ? '80mm auto' : '58mm auto';
+        const contentWidth = printTemplate === 'a4' ? '100%' : printTemplate === 'thermal80' ? '76mm' : '54mm';
+        const marginSetting = printTemplate === 'a4' ? '12mm 15mm' : '2mm 1mm';
+
+        let iframe = document.getElementById('pharma-invoice-print-frame') as HTMLIFrameElement;
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = 'pharma-invoice-print-frame';
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            iframe.style.opacity = '0';
+            document.body.appendChild(iframe);
+        }
+
+        const doc = iframe.contentWindow?.document;
+        if (!doc) {
+            window.print();
+            return;
+        }
+
+        doc.open();
+        doc.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Invoice - ${viewingInvoice?.invoice_number || 'Print'}</title>
+                <style>
+                    @page {
+                        size: ${pageSize};
+                        margin: ${marginSetting};
+                    }
+                    * {
+                        box-sizing: border-box;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    body {
+                        margin: 0;
+                        padding: ${printTemplate === 'a4' ? '10px' : '4px 2px'};
+                        width: ${contentWidth};
+                        max-width: ${printTemplate === 'a4' ? '210mm' : contentWidth};
+                        margin: 0 auto;
+                        background: #ffffff !important;
+                        color: #0f172a !important;
+                        font-family: ${isThermal ? '"Courier New", Courier, monospace' : 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'};
+                        font-size: ${printTemplate === 'a4' ? '12px' : printTemplate === 'thermal80' ? '11px' : '9.5px'};
+                        line-height: 1.35;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                    }
+                    th, td {
+                        padding: 6px 8px;
+                    }
+                    .flex { display: flex; }
+                    .items-center { align-items: center; }
+                    .items-start { align-items: flex-start; }
+                    .justify-between { justify-content: space-between; }
+                    .justify-center { justify-content: center; }
+                    .grid { display: grid; }
+                    .grid-cols-2 { grid-template-columns: 1fr 1fr; }
+                    .gap-4 { gap: 1rem; }
+                    .gap-6 { gap: 1.5rem; }
+                    .border-b { border-bottom: 1px solid #cbd5e1; }
+                    .border-t { border-top: 1px solid #cbd5e1; }
+                    .border-t-2 { border-top: 2px solid #0f172a; }
+                    .border-dashed { border-style: dashed; }
+                    .border-slate-200 { border-color: #e2e8f0; }
+                    .border-slate-300 { border-color: #cbd5e1; }
+                    .border-slate-400 { border-color: #94a3b8; }
+                    .bg-slate-50 { background-color: #f8fafc; }
+                    .bg-slate-100 { background-color: #f1f5f9; }
+                    .bg-slate-950 { background-color: #020617; }
+                    .text-white { color: #ffffff !important; }
+                    .text-slate-950 { color: #020617; }
+                    .text-slate-900 { color: #0f172a; }
+                    .text-slate-800 { color: #1e293b; }
+                    .text-slate-700 { color: #334155; }
+                    .text-slate-600 { color: #475569; }
+                    .text-slate-500 { color: #64748b; }
+                    .text-slate-400 { color: #94a3b8; }
+                    .text-emerald-700 { color: #047857; }
+                    .text-emerald-800 { color: #065f46; }
+                    .text-rose-600 { color: #e11d48; }
+                    .text-rose-700 { color: #be123c; }
+                    .font-bold { font-weight: 700; }
+                    .font-black { font-weight: 900; }
+                    .font-semibold { font-weight: 600; }
+                    .font-mono { font-family: "Courier New", Courier, monospace; }
+                    .text-right { text-align: right; }
+                    .text-center { text-align: center; }
+                    .text-left { text-align: left; }
+                    .text-xs { font-size: 11px; }
+                    .text-sm { font-size: 13px; }
+                    .text-base { font-size: 15px; }
+                    .text-xl { font-size: 18px; }
+                    .text-\\[10px\\] { font-size: 10px; }
+                    .text-\\[11px\\] { font-size: 11px; }
+                    .text-\\[9px\\] { font-size: 9px; }
+                    .uppercase { text-transform: uppercase; }
+                    .tracking-tight { letter-spacing: -0.025em; }
+                    .tracking-wider { letter-spacing: 0.05em; }
+                    .space-y-1 > * + * { margin-top: 0.25rem; }
+                    .space-y-1\\.5 > * + * { margin-top: 0.375rem; }
+                    .space-y-2 > * + * { margin-top: 0.5rem; }
+                    .space-y-0\\.5 > * + * { margin-top: 0.125rem; }
+                    .p-3 { padding: 0.75rem; }
+                    .p-4 { padding: 1rem; }
+                    .p-8 { padding: 1.5rem; }
+                    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+                    .py-2\\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+                    .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+                    .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+                    .pb-2 { padding-bottom: 0.5rem; }
+                    .pb-3 { padding-bottom: 0.75rem; }
+                    .pb-6 { padding-bottom: 1.25rem; }
+                    .pt-1 { padding-top: 0.25rem; }
+                    .pt-2 { padding-top: 0.5rem; }
+                    .pt-3 { padding-top: 0.75rem; }
+                    .pt-4 { padding-top: 1rem; }
+                    .mt-0\\.5 { margin-top: 0.125rem; }
+                    .mt-1 { margin-top: 0.25rem; }
+                    .mt-8 { margin-top: 1.5rem; }
+                    .mb-2 { margin-bottom: 0.5rem; }
+                    .rounded-md { border-radius: 0.375rem; }
+                    .rounded-xl { border-radius: 0.5rem; }
+                    .rounded-2xl { border-radius: 0.75rem; }
+                    .divide-y > * + * { border-top: 1px solid #e2e8f0; }
+                    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                </style>
+            </head>
+            <body>
+                ${targetElement.innerHTML}
+            </body>
+            </html>
+        `);
+        doc.close();
+
+        setTimeout(() => {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+        }, 200);
     };
 
     const getStatusBadge = (sale: Sale) => {
@@ -573,10 +730,12 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                             </h2>
                                             <p className="text-xs text-slate-600 mt-0.5">{settings.store_tagline}</p>
                                             <p className="text-[11px] text-slate-600 mt-1 max-w-sm">{settings.store_address}</p>
-                                            <div className="flex items-center gap-4 text-[11px] text-slate-600 mt-1 font-mono">
-                                                <span>Phone: {settings.store_phone}</span>
-                                                <span>Email: {settings.store_email}</span>
-                                            </div>
+                                            {(settings.store_phone || settings.store_email) && (
+                                                <div className="flex items-center gap-4 text-[11px] text-slate-600 mt-1 font-mono">
+                                                    {settings.store_phone && <span>Phone: {settings.store_phone}</span>}
+                                                    {settings.store_email && <span>Email: {settings.store_email}</span>}
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="text-right">
@@ -745,7 +904,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                             <h3 className="font-black text-base uppercase">{settings.store_name}</h3>
                                             <p className="text-[10px] text-slate-600">{settings.store_tagline}</p>
                                             <p className="text-[10px] text-slate-600">{settings.store_address}</p>
-                                            <p className="text-[10px] text-slate-600">Tel: {settings.store_phone}</p>
+                                            {settings.store_phone && <p className="text-[10px] text-slate-600">Tel: {settings.store_phone}</p>}
                                             {settings.drug_license_number && (
                                                 <p className="text-[10px] font-bold text-slate-800">Lic: {settings.drug_license_number}</p>
                                             )}
