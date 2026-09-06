@@ -13,6 +13,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\InvoiceController;
 
 // Authentication
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -22,6 +23,13 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // User Profile
 Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
 Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+// Invoices & Sales Ledger
+Route::prefix('invoices')->name('invoices.')->group(function () {
+    Route::get('/', [InvoiceController::class, 'index'])->name('index');
+    Route::post('/{sale}/collect-due', [InvoiceController::class, 'collectDue'])->name('collect-due');
+    Route::post('/{sale}/return', [InvoiceController::class, 'processReturn'])->name('return');
+});
 
 // Staff & Role Management (Super Admin)
 Route::prefix('users')->name('users.')->group(function () {

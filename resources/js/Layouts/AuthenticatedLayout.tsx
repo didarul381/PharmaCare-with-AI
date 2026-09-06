@@ -4,6 +4,7 @@ import {
     LayoutDashboard,
     Boxes,
     ShoppingCart,
+    Receipt,
     FileText,
     Sparkles,
     Truck,
@@ -29,7 +30,7 @@ import { cn } from '@/lib/utils';
 interface Props {
     header?: ReactNode;
     children: ReactNode;
-    activeTab?: 'dashboard' | 'inventory' | 'pos' | 'prescriptions' | 'ai-insights' | 'suppliers' | 'audit-logs' | 'settings';
+    activeTab?: 'dashboard' | 'inventory' | 'pos' | 'invoices' | 'prescriptions' | 'ai-insights' | 'suppliers' | 'audit-logs' | 'settings';
 }
 
 export default function AuthenticatedLayout({ header, children, activeTab }: Props) {
@@ -88,6 +89,7 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
             case 'dashboard':
                 return true;
             case 'pos':
+            case 'invoices':
                 return ['pharmacist', 'cashier'].includes(currentUserRole);
             case 'prescriptions':
             case 'ai-insights':
@@ -124,6 +126,12 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
             href: '/pos',
             icon: ShoppingCart,
             badge: 'FEFO',
+        },
+        {
+            key: 'invoices',
+            label: 'Invoices',
+            href: '/invoices',
+            icon: Receipt,
         },
         {
             key: 'prescriptions',
