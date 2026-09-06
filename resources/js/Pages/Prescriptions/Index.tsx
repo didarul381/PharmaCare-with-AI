@@ -395,20 +395,6 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                             <span>{showKeyConfig ? 'Close Key Setup' : 'API Key Setup'}</span>
                             {showKeyConfig ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                         </button>
-
-                        <button
-                            onClick={loadSampleJoysree}
-                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 hover:from-cyan-500/30 hover:to-emerald-500/30 text-cyan-300 border border-cyan-500/40 flex items-center gap-2 transition shadow-glow-cyan"
-                        >
-                            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>Dr. Joysree Saha (9 Rx)</span>
-                        </button>
-                        <button
-                            onClick={loadSampleMahbubur}
-                            className="px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1.5 transition"
-                        >
-                            <span>Dr. Mahbubur (4 Rx)</span>
-                        </button>
                     </div>
                 </div>
             }
