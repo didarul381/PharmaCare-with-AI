@@ -319,64 +319,105 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
         }
     };
 
+    const handleQuantityChange = (idx: number, delta: number) => {
+        if (!scannedResult || !scannedResult.matched_items) return;
+        const newItems = [...scannedResult.matched_items];
+        const currentQty = newItems[idx]?.quantity || 1;
+        const nextQty = Math.max(1, currentQty + delta);
+        newItems[idx] = { ...newItems[idx], quantity: nextQty };
+        setScannedResult({ ...scannedResult, matched_items: newItems });
+    };
+
+    const handleRemoveScannedItem = (idx: number) => {
+        if (!scannedResult || !scannedResult.matched_items) return;
+        const itemToRemove = scannedResult.matched_items[idx];
+        const newItems = scannedResult.matched_items.filter((_: any, i: number) => i !== idx);
+        setScannedResult({ ...scannedResult, matched_items: newItems });
+        showToast(`Removed "${itemToRemove.medicine?.name || itemToRemove.drug_name_raw}" from prescription.`, 'success');
+    };
+
     const handlePushToPos = () => {
         if (!scannedResult || !scannedResult.matched_items || scannedResult.matched_items.length === 0) {
-            alert('No matched medicines available to push to POS cart.');
+            showToast('No medicines available in this prescription.', 'error');
             return;
         }
 
-        const cartItems = scannedResult.matched_items
-            .filter((item: any) => item.matched_medicine)
-            .map((item: any) => ({
-                medicine: item.matched_medicine,
+        const availableItems = scannedResult.matched_items.filter((item: any) => {
+            const med = item.medicine;
+            return med && (med.total_stock || 0) > 0;
+        });
+
+        if (availableItems.length === 0) {
+            showToast('None of the extracted medicines are currently in stock in inventory.', 'error');
+            return;
+        }
+
+        const cartItems = availableItems.map((item: any) => {
+            const med = item.medicine;
+            return {
+                medicine: med,
                 quantity: item.quantity || 1,
-                unit_price: item.matched_medicine.selling_price || item.matched_medicine.current_selling_price || 10.0,
-                unit_name: item.matched_medicine.unit_name || 'Strip',
+                unit_price: Number(med.selling_price || med.current_selling_price || 10.0),
+                unit_name: med.unit_name || 'Strip',
                 discount: 0,
-            }));
-
-        if (cartItems.length === 0) {
-            alert('Matched prescription items could not be mapped to active catalog inventory.');
-            return;
-        }
+            };
+        });
 
         try {
             localStorage.setItem('pharmacare_transferred_cart', JSON.stringify(cartItems));
-            if (scannedResult.prescription?.patient_name) {
-                localStorage.setItem('pharmacare_transferred_customer_name', scannedResult.prescription.patient_name);
+            const patientName = scannedResult.patient?.name || scannedResult.prescription?.patient_name;
+            if (patientName) {
+                localStorage.setItem('pharmacare_transferred_customer_name', patientName);
             }
         } catch {}
+
+        if (availableItems.length < scannedResult.matched_items.length) {
+            const skipped = scannedResult.matched_items.length - availableItems.length;
+            showToast(`Transferring ${availableItems.length} available items to POS (${skipped} unavailable skipped).`, 'success');
+        }
 
         router.visit('/pos');
     };
 
     const handlePushSavedRxToPos = (rx: Prescription) => {
         if (!rx.items || rx.items.length === 0) {
-            alert('No prescribed medicines found in this record to transfer.');
+            showToast('No prescribed medicines found in this record.', 'error');
             return;
         }
 
-        const cartItems = rx.items
-            .filter((item) => item.medicine)
-            .map((item) => ({
-                medicine: item.medicine,
+        const availableItems = rx.items.filter((item) => {
+            const med = item.medicine as any;
+            return med && (med.total_stock || 0) > 0;
+        });
+
+        if (availableItems.length === 0) {
+            showToast('None of the items in this prescription are currently in stock.', 'error');
+            return;
+        }
+
+        const cartItems = availableItems.map((item) => {
+            const med = item.medicine as any;
+            return {
+                medicine: med,
                 quantity: item.quantity || 1,
-                unit_price: (item.medicine as any)?.selling_price || item.medicine?.current_selling_price || 10.0,
-                unit_name: (item.medicine as any)?.unit_name || 'Strip',
+                unit_price: Number(med.selling_price || med.current_selling_price || 10.0),
+                unit_name: med.unit_name || 'Strip',
                 discount: 0,
-            }));
-
-        if (cartItems.length === 0) {
-            alert('Prescription items could not be mapped to catalog inventory.');
-            return;
-        }
+            };
+        });
 
         try {
             localStorage.setItem('pharmacare_transferred_cart', JSON.stringify(cartItems));
-            if (rx.customer?.name) {
-                localStorage.setItem('pharmacare_transferred_customer_name', rx.customer.name);
+            const patientName = rx.customer?.name || (rx.ai_extracted_data as any)?.patient?.name;
+            if (patientName) {
+                localStorage.setItem('pharmacare_transferred_customer_name', patientName);
             }
         } catch {}
+
+        if (availableItems.length < rx.items.length) {
+            const skipped = rx.items.length - availableItems.length;
+            showToast(`Transferring ${availableItems.length} in-stock items (${skipped} unavailable skipped).`, 'success');
+        }
 
         router.visit('/pos');
     };
@@ -835,61 +876,111 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                     </div>
 
                                     <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                                        {scannedResult.matched_items.map((item: any, idx: number) => (
-                                            <div key={idx} className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition flex items-center justify-between gap-3">
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-bold text-white text-xs block truncate">
-                                                            {item.medicine?.name || item.drug_name_raw}
-                                                        </span>
-                                                        <span className={cn(
-                                                            "text-[9px] font-bold px-1.5 py-0.2 rounded-md",
-                                                            item.match_confidence >= 95
-                                                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                                                : "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
-                                                        )}>
-                                                            {item.match_confidence}% Match
-                                                        </span>
-                                                    </div>
-                                                    <div className="text-[11px] text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
-                                                        <span className="text-cyan-300 font-medium">Dose: {item.frequency}</span>
-                                                        <span className="text-slate-400">{item.instructions}</span>
-                                                    </div>
-                                                </div>
+                                        {scannedResult.matched_items.map((item: any, idx: number) => {
+                                            const isMatched = !!item.medicine;
+                                            const stockCount = item.medicine ? (item.medicine.total_stock || 0) : 0;
+                                            const isAvailable = isMatched && stockCount > 0;
+                                            const unitPrice = Number(item.medicine?.selling_price || item.medicine?.current_selling_price || 0);
 
-                                                <div className="flex items-center gap-3 shrink-0">
-                                                    {/* Quantity Controller */}
-                                                    <div className="flex items-center bg-slate-800/80 rounded-lg p-0.5 border border-slate-700">
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className={cn(
+                                                        "p-3.5 rounded-2xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3",
+                                                        isAvailable
+                                                            ? "bg-slate-900/90 border-slate-800 hover:border-slate-700"
+                                                            : isMatched
+                                                            ? "bg-red-950/20 border-red-900/40 hover:border-red-800/60"
+                                                            : "bg-amber-950/20 border-amber-900/40 hover:border-amber-800/60"
+                                                    )}
+                                                >
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <span className="font-bold text-white text-xs block truncate">
+                                                                {item.medicine?.name || item.drug_name_raw}
+                                                            </span>
+
+                                                            {/* Match Confidence */}
+                                                            <span className={cn(
+                                                                "text-[9px] font-bold px-1.5 py-0.5 rounded-md",
+                                                                item.match_confidence >= 95
+                                                                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                                                    : "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+                                                            )}>
+                                                                {item.match_confidence}% Match
+                                                            </span>
+
+                                                            {/* Stock Status Pill */}
+                                                            {isAvailable ? (
+                                                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                                                                    <Check className="w-2.5 h-2.5" /> In Stock: {stockCount} {item.medicine.unit_name || 'Units'}
+                                                                </span>
+                                                            ) : isMatched ? (
+                                                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
+                                                                    <AlertTriangle className="w-2.5 h-2.5" /> Out of Stock (0)
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                                                    <AlertCircle className="w-2.5 h-2.5" /> Not in Catalog
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="text-[11px] text-slate-400 mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                                                            <span className="text-cyan-300 font-medium">Dose: {item.frequency || '1+0+1'}</span>
+                                                            {item.dosage && <span className="text-slate-300">({item.dosage})</span>}
+                                                            {item.instructions && <span className="text-slate-400 italic">"{item.instructions}"</span>}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
+                                                        {/* Quantity Controller */}
+                                                        <div className="flex items-center bg-slate-800/90 rounded-lg p-0.5 border border-slate-700">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleQuantityChange(idx, -1)}
+                                                                className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white rounded hover:bg-slate-700 text-xs font-bold transition"
+                                                            >
+                                                                -
+                                                            </button>
+                                                            <span className="w-8 text-center text-xs font-bold text-white">
+                                                                {item.quantity}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleQuantityChange(idx, 1)}
+                                                                className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white rounded hover:bg-slate-700 text-xs font-bold transition"
+                                                            >
+                                                                +
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Price & Unit */}
+                                                        <div className="text-right min-w-[70px]">
+                                                            <span className={cn(
+                                                                "text-xs font-black block",
+                                                                isAvailable ? "text-emerald-400" : "text-slate-500 line-through"
+                                                            )}>
+                                                                {formatCurrency(unitPrice * item.quantity)}
+                                                            </span>
+                                                            <span className="text-[10px] text-slate-400">
+                                                                {unitPrice > 0 ? `${formatCurrency(unitPrice)}/${item.medicine?.unit_name || 'unit'}` : 'N/A'}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Remove Action Button */}
                                                         <button
                                                             type="button"
-                                                            onClick={() => handleQuantityChange(idx, -1)}
-                                                            className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-white rounded hover:bg-slate-700 text-xs font-bold"
+                                                            onClick={() => handleRemoveScannedItem(idx)}
+                                                            title="Remove item from prescription"
+                                                            className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700 hover:border-red-500/40 transition"
                                                         >
-                                                            -
+                                                            <Trash2 className="w-3.5 h-3.5" />
                                                         </button>
-                                                        <span className="w-8 text-center text-xs font-bold text-white">
-                                                            {item.quantity}
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleQuantityChange(idx, 1)}
-                                                            className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-white rounded hover:bg-slate-700 text-xs font-bold"
-                                                        >
-                                                            +
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="text-right min-w-[70px]">
-                                                        <span className="text-xs font-bold text-emerald-400 block">
-                                                            {formatCurrency((item.medicine?.selling_price || 8.50) * item.quantity)}
-                                                        </span>
-                                                        <span className="text-[10px] text-slate-400">
-                                                            Stock: {item.medicine?.total_stock || 0}
-                                                        </span>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
@@ -929,16 +1020,23 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
 
                     {scannedResult && (
                         <div className="mt-5 pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-                            <span className="text-xs text-slate-400">
-                                Prescription #{scannedResult.prescription.prescription_number} Verified
-                            </span>
+                            <div className="text-xs text-slate-400 flex flex-wrap items-center gap-2">
+                                <span>Prescription #{scannedResult.prescription?.prescription_number || 'Verified'}</span>
+                                {scannedResult.matched_items.some((it: any) => !it.medicine || (it.medicine?.total_stock || 0) <= 0) && (
+                                    <span className="text-amber-400 font-medium">
+                                        • Some items are unavailable
+                                    </span>
+                                )}
+                            </div>
 
                             <button
                                 onClick={handlePushToPos}
                                 className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-glow-emerald flex items-center justify-center gap-2 hover:from-emerald-400 hover:to-teal-400 transition transform hover:scale-[1.02]"
                             >
                                 <ShoppingCart className="w-4 h-4 text-slate-950" />
-                                <span>Push {scannedResult.matched_items.length} Items to POS Cart & Dispense</span>
+                                <span>
+                                    Push {scannedResult.matched_items.filter((it: any) => it.medicine && (it.medicine.total_stock || 0) > 0).length} In-Stock Items to POS Cart
+                                </span>
                             </button>
                         </div>
                     )}
@@ -1257,29 +1355,66 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                 Prescribed Medications ({viewRxModal.items?.length || 0})
                             </h4>
                             <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                                {viewRxModal.items?.map((item, idx) => (
-                                    <div key={idx} className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 flex items-center justify-between gap-3">
-                                        <div>
-                                            <p className="text-xs font-bold text-white">
-                                                {item.medicine?.name || item.drug_name_raw}
-                                            </p>
-                                            <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                                                <span className="text-cyan-300 font-medium">Dose: {item.frequency || '1+0+1'}</span>
-                                                <span>Qty: {item.quantity || 1} units</span>
-                                                {item.instructions && <span className="text-slate-500">{item.instructions}</span>}
+                                {viewRxModal.items?.map((item, idx) => {
+                                    const med = item.medicine as any;
+                                    const isMatched = !!med;
+                                    const stockCount = med ? (med.total_stock || 0) : 0;
+                                    const isAvailable = isMatched && stockCount > 0;
+                                    const unitPrice = Number(med?.selling_price || med?.current_selling_price || 0);
+
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className={cn(
+                                                "p-3 rounded-2xl border flex items-center justify-between gap-3",
+                                                isAvailable
+                                                    ? "bg-slate-950/90 border-slate-800"
+                                                    : isMatched
+                                                    ? "bg-red-950/20 border-red-900/40"
+                                                    : "bg-amber-950/20 border-amber-900/40"
+                                            )}
+                                        >
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <p className="text-xs font-bold text-white truncate">
+                                                        {med?.name || item.drug_name_raw}
+                                                    </p>
+                                                    {isAvailable ? (
+                                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                                                            <Check className="w-2.5 h-2.5" /> In Stock ({stockCount})
+                                                        </span>
+                                                    ) : isMatched ? (
+                                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
+                                                            <AlertTriangle className="w-2.5 h-2.5" /> Out of Stock
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                                            <AlertCircle className="w-2.5 h-2.5" /> Unmapped
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                                    <span className="text-cyan-300 font-medium">Dose: {item.frequency || '1+0+1'}</span>
+                                                    <span>Qty: {item.quantity || 1} units</span>
+                                                    {item.instructions && <span className="text-slate-500 truncate">{item.instructions}</span>}
+                                                </div>
+                                            </div>
+
+                                            <div className="text-right shrink-0">
+                                                <span className={cn(
+                                                    "text-xs font-bold block",
+                                                    isAvailable ? "text-emerald-400" : "text-slate-500"
+                                                )}>
+                                                    {formatCurrency(unitPrice * (item.quantity || 1))}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400">
+                                                    Stock: {stockCount}
+                                                </span>
                                             </div>
                                         </div>
-
-                                        <div className="text-right shrink-0">
-                                            <span className="text-xs font-bold text-emerald-400 block">
-                                                {formatCurrency(((item.medicine as any)?.selling_price || item.medicine?.current_selling_price || 10.0) * (item.quantity || 1))}
-                                            </span>
-                                            <span className="text-[10px] text-slate-400">
-                                                Stock: {item.medicine?.total_stock || 0}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
 
