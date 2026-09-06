@@ -319,6 +319,37 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
         }
     };
 
+    const handlePushToPos = () => {
+        if (!scannedResult || !scannedResult.matched_items || scannedResult.matched_items.length === 0) {
+            alert('No matched medicines available to push to POS cart.');
+            return;
+        }
+
+        const cartItems = scannedResult.matched_items
+            .filter((item: any) => item.matched_medicine)
+            .map((item: any) => ({
+                medicine: item.matched_medicine,
+                quantity: item.quantity || 1,
+                unit_price: item.matched_medicine.selling_price || item.matched_medicine.current_selling_price || 10.0,
+                unit_name: item.matched_medicine.unit_name || 'Strip',
+                discount: 0,
+            }));
+
+        if (cartItems.length === 0) {
+            alert('Matched prescription items could not be mapped to active catalog inventory.');
+            return;
+        }
+
+        try {
+            localStorage.setItem('pharmacare_transferred_cart', JSON.stringify(cartItems));
+            if (scannedResult.prescription?.patient_name) {
+                localStorage.setItem('pharmacare_transferred_customer_name', scannedResult.prescription.patient_name);
+            }
+        } catch {}
+
+        router.visit('/pos');
+    };
+
     const handlePushSavedRxToPos = (rx: Prescription) => {
         if (!rx.items || rx.items.length === 0) {
             alert('No prescribed medicines found in this record to transfer.');
