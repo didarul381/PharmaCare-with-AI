@@ -15,6 +15,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ClinicalReferenceController;
 
 // Authentication
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -24,6 +25,18 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // User Profile
 Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
 Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+// Clinical Reference & Medicine Dictionary
+Route::prefix('clinical-reference')->name('clinical-reference.')->group(function () {
+    Route::get('/', [ClinicalReferenceController::class, 'index'])->name('index');
+    Route::get('/free-api-search', [ClinicalReferenceController::class, 'freeApiSearch'])->name('free-api-search');
+    Route::post('/import-from-api', [ClinicalReferenceController::class, 'importFromApi'])->name('import-from-api');
+    Route::post('/check-interactions', [ClinicalReferenceController::class, 'checkInteractions'])->name('check-interactions');
+    Route::post('/generics', [ClinicalReferenceController::class, 'store'])->name('generics.store');
+    Route::put('/generics/{generic}', [ClinicalReferenceController::class, 'update'])->name('generics.update');
+    Route::post('/interactions', [ClinicalReferenceController::class, 'storeInteraction'])->name('interactions.store');
+    Route::delete('/interactions/{interaction}', [ClinicalReferenceController::class, 'destroyInteraction'])->name('interactions.destroy');
+});
 
 // Reports & Financial Intelligence
 Route::prefix('reports')->name('reports.')->group(function () {

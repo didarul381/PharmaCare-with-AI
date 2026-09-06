@@ -14,7 +14,18 @@ class GenericName extends Model
         'name',
         'therapeutic_class',
         'description',
+        'indications',
+        'dosage_guidelines',
+        'contraindications',
+        'side_effects',
+        'mechanism_of_action',
+        'counseling_points',
         'pregnancy_category',
+        'is_controlled',
+    ];
+
+    protected $casts = [
+        'is_controlled' => 'boolean',
     ];
 
     public function medicines(): HasMany
@@ -30,5 +41,15 @@ class GenericName extends Model
     public function interactionsAsSecondary(): HasMany
     {
         return $this->hasMany(DrugInteraction::class, 'generic_b_id');
+    }
+
+    /**
+     * Get all interactions for this generic (as either A or B).
+     */
+    public function allInteractions()
+    {
+        return DrugInteraction::where('generic_a_id', $this->id)
+            ->orWhere('generic_b_id', $this->id)
+            ->with(['genericA', 'genericB']);
     }
 }

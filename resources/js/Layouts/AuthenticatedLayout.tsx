@@ -23,7 +23,8 @@ import {
     Shield,
     Users,
     Check,
-    BarChart3
+    BarChart3,
+    BookOpen
 } from 'lucide-react';
 import { PageProps } from '@/types';
 import { cn } from '@/lib/utils';
@@ -31,7 +32,7 @@ import { cn } from '@/lib/utils';
 interface Props {
     header?: ReactNode;
     children: ReactNode;
-    activeTab?: 'dashboard' | 'inventory' | 'pos' | 'invoices' | 'reports' | 'prescriptions' | 'ai-insights' | 'suppliers' | 'audit-logs' | 'settings';
+    activeTab?: 'dashboard' | 'inventory' | 'pos' | 'invoices' | 'reports' | 'clinical-reference' | 'prescriptions' | 'ai-insights' | 'suppliers' | 'audit-logs' | 'settings';
 }
 
 export default function AuthenticatedLayout({ header, children, activeTab }: Props) {
@@ -91,6 +92,7 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
                 return true;
             case 'pos':
             case 'invoices':
+            case 'clinical-reference':
                 return ['pharmacist', 'cashier'].includes(currentUserRole);
             case 'reports':
                 return ['pharmacist', 'inventory_manager'].includes(currentUserRole);
@@ -141,6 +143,12 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
             label: 'Reports',
             href: '/reports',
             icon: BarChart3,
+        },
+        {
+            key: 'clinical-reference',
+            label: 'Clinical Reference',
+            href: '/clinical-reference',
+            icon: BookOpen,
         },
         {
             key: 'prescriptions',
