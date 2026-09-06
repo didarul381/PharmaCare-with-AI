@@ -14,6 +14,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\ReportController;
 
 // Authentication
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -23,6 +24,12 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // User Profile
 Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
 Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+// Reports & Financial Intelligence
+Route::prefix('reports')->name('reports.')->group(function () {
+    Route::get('/', [ReportController::class, 'index'])->name('index');
+    Route::get('/export', [ReportController::class, 'exportCsv'])->name('export');
+});
 
 // Invoices & Sales Ledger
 Route::prefix('invoices')->name('invoices.')->group(function () {

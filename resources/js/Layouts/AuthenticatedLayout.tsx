@@ -22,7 +22,8 @@ import {
     Settings as SettingsIcon,
     Shield,
     Users,
-    Check
+    Check,
+    BarChart3
 } from 'lucide-react';
 import { PageProps } from '@/types';
 import { cn } from '@/lib/utils';
@@ -30,7 +31,7 @@ import { cn } from '@/lib/utils';
 interface Props {
     header?: ReactNode;
     children: ReactNode;
-    activeTab?: 'dashboard' | 'inventory' | 'pos' | 'invoices' | 'prescriptions' | 'ai-insights' | 'suppliers' | 'audit-logs' | 'settings';
+    activeTab?: 'dashboard' | 'inventory' | 'pos' | 'invoices' | 'reports' | 'prescriptions' | 'ai-insights' | 'suppliers' | 'audit-logs' | 'settings';
 }
 
 export default function AuthenticatedLayout({ header, children, activeTab }: Props) {
@@ -91,6 +92,8 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
             case 'pos':
             case 'invoices':
                 return ['pharmacist', 'cashier'].includes(currentUserRole);
+            case 'reports':
+                return ['pharmacist', 'inventory_manager'].includes(currentUserRole);
             case 'prescriptions':
             case 'ai-insights':
                 return ['pharmacist'].includes(currentUserRole);
@@ -132,6 +135,12 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
             label: 'Invoices',
             href: '/invoices',
             icon: Receipt,
+        },
+        {
+            key: 'reports',
+            label: 'Reports',
+            href: '/reports',
+            icon: BarChart3,
         },
         {
             key: 'prescriptions',
