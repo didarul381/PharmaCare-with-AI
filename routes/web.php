@@ -8,9 +8,16 @@ use App\Http\Controllers\PrescriptionController;
 use App\Http\Controllers\AiInsightsController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\SettingController;
 
 // Dashboard
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+// Settings & Store Profile
+Route::prefix('settings')->name('settings.')->group(function () {
+    Route::get('/', [SettingController::class, 'index'])->name('index');
+    Route::post('/update', [SettingController::class, 'update'])->name('update');
+});
 
 // Inventory
 Route::prefix('inventory')->name('inventory.')->group(function () {

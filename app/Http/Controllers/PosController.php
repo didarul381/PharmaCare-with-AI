@@ -66,11 +66,13 @@ class PosController extends Controller
 
         $customers = Customer::all();
         $categories = Category::where('is_active', true)->get();
+        $storeSettings = \App\Models\StoreSetting::getSettings();
 
         return Inertia::render('Pos/Index', [
             'medicines' => $medicines,
             'customers' => $customers,
             'categories' => $categories,
+            'store_settings' => $storeSettings,
         ]);
     }
 

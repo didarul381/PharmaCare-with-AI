@@ -88,9 +88,10 @@ interface Props {
     medicines: PosMedicine[];
     customers: Customer[];
     categories: Category[];
+    store_settings?: any;
 }
 
-export default function PosIndex({ medicines, customers, categories }: Props) {
+export default function PosIndex({ medicines, customers, categories, store_settings }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -101,7 +102,7 @@ export default function PosIndex({ medicines, customers, categories }: Props) {
     const [paidAmount, setPaidAmount] = useState<string>('');
     const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('fixed');
     const [discountValue, setDiscountValue] = useState<number>(0);
-    const [taxPercentage, setTaxPercentage] = useState<number>(5.00); // 5% default VAT
+    const [taxPercentage, setTaxPercentage] = useState<number>(Number(store_settings?.default_tax_rate) || 5.00);
     const [showDiscountDrawer, setShowDiscountDrawer] = useState<boolean>(false);
     const [showTaxDrawer, setShowTaxDrawer] = useState<boolean>(false);
     const [notes, setNotes] = useState('');
@@ -1205,11 +1206,29 @@ export default function PosIndex({ medicines, customers, categories }: Props) {
                         </div>
 
                         {/* Thermal Receipt Simulator */}
-                        <div className="my-4 p-4 rounded-2xl bg-white text-slate-950 font-mono text-xs shadow-inner space-y-2">
+                        <div
+                            id="pos-thermal-slip"
+                            className="my-4 p-4 rounded-2xl bg-white text-slate-950 font-mono text-xs shadow-inner space-y-2 border border-slate-200"
+                        >
                             <div className="text-center border-b border-slate-300 pb-2">
-                                <h4 className="font-extrabold text-sm uppercase tracking-wider">PHARMACARE AI RX</h4>
-                                <p className="text-[10px] text-slate-600">Enterprise Pharmacy & Healthcare</p>
-                                <p className="text-[10px] text-slate-600">Tel: +880 2 8833047 | FDA/DGDA Lic: 89410</p>
+                                <h4 className="font-extrabold text-sm uppercase tracking-wider text-slate-950">
+                                    {store_settings?.store_name || 'PHARMACARE AI RX'}
+                                </h4>
+                                {store_settings?.store_tagline && (
+                                    <p className="text-[10px] text-slate-700">{store_settings.store_tagline}</p>
+                                )}
+                                {store_settings?.address && (
+                                    <p className="text-[10px] text-slate-600 mt-0.5">{store_settings.address}</p>
+                                )}
+                                {store_settings?.phone && (
+                                    <p className="text-[10px] text-slate-600">Tel: {store_settings.phone}</p>
+                                )}
+                                {(store_settings?.show_license_on_receipt !== false) && (
+                                    <div className="text-[9px] text-slate-600 mt-0.5">
+                                        {store_settings?.drug_license_no && <div>{store_settings.drug_license_no}</div>}
+                                        {store_settings?.vat_reg_no && <div>{store_settings.vat_reg_no}</div>}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="text-[10px] space-y-0.5 border-b border-slate-300 pb-2">
@@ -1245,10 +1264,12 @@ export default function PosIndex({ medicines, customers, categories }: Props) {
                                         <span>-{formatCurrency(completedSale.discount_amount)}</span>
                                     </div>
                                 )}
-                                <div className="flex justify-between text-[11px]">
-                                    <span>Govt VAT / Tax ({completedSale.tax_percentage}%):</span>
-                                    <span>{formatCurrency(completedSale.tax_amount)}</span>
-                                </div>
+                                {(store_settings?.show_tax_on_receipt !== false) && (
+                                    <div className="flex justify-between text-[11px]">
+                                        <span>Govt VAT / Tax ({completedSale.tax_percentage}%):</span>
+                                        <span>{formatCurrency(completedSale.tax_amount)}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-400">
                                     <span>Grand Total:</span>
                                     <span>{formatCurrency(completedSale.grand_total)}</span>
@@ -1266,13 +1287,67 @@ export default function PosIndex({ medicines, customers, categories }: Props) {
                             </div>
 
                             <div className="text-center pt-2 text-[9px] text-slate-500 border-t border-slate-200">
-                                Thank you for choosing PharmaCare AI! Quick healing.
+                                {store_settings?.receipt_footer || 'Thank you for choosing PharmaCare AI! Quick healing.'}
                             </div>
                         </div>
 
                         <div className="flex gap-2">
                             <button
-                                onClick={() => window.print()}
+                                onClick={() => {
+                                    const slip = document.getElementById('pos-thermal-slip');
+                                    if (!slip) {
+                                        window.print();
+                                        return;
+                                    }
+                                    const width = store_settings?.thermal_printer_width === '58mm' ? '54mm' : '72mm';
+                                    const pageSize = store_settings?.thermal_printer_width === '58mm' ? '58mm' : '80mm';
+                                    const win = window.open('', '_blank', 'width=400,height=600');
+                                    if (!win) {
+                                        window.print();
+                                        return;
+                                    }
+                                    win.document.write(`
+                                        <!DOCTYPE html>
+                                        <html>
+                                        <head>
+                                            <title>Receipt - ${completedSale.invoice_number}</title>
+                                            <style>
+                                                @page { margin: 0; size: ${pageSize} auto; }
+                                                body {
+                                                    font-family: 'Courier New', Courier, monospace;
+                                                    font-size: 12px;
+                                                    color: #000;
+                                                    background: #fff;
+                                                    margin: 0;
+                                                    padding: 8px 6px;
+                                                    width: ${width};
+                                                }
+                                                .text-center { text-align: center; }
+                                                .text-right { text-align: right; }
+                                                .font-bold { font-weight: bold; }
+                                                .font-black { font-weight: 900; }
+                                                .border-b { border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px; }
+                                                .border-t { border-top: 1px dashed #000; padding-top: 5px; margin-top: 5px; }
+                                                .flex { display: flex; justify-content: space-between; margin-bottom: 2px; }
+                                                .text-xs { font-size: 10px; }
+                                                .text-sm { font-size: 13px; }
+                                                .text-emerald-700 { color: #000; font-weight: bold; }
+                                            </style>
+                                        </head>
+                                        <body>
+                                            ${slip.innerHTML}
+                                            <script>
+                                                window.onload = function() {
+                                                    window.focus();
+                                                    window.print();
+                                                    setTimeout(function() { window.close(); }, 500);
+                                                };
+                                            </script>
+                                        </body>
+                                        </html>
+                                    `);
+                                    win.document.close();
+                                }}
                                 className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center gap-1.5 shadow-glow-emerald"
                             >
                                 <Printer className="w-4 h-4" /> Print Thermal Receipt

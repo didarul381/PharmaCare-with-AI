@@ -17,7 +17,8 @@ import {
     UserCircle,
     Activity,
     AlertTriangle,
-    CheckCircle2
+    CheckCircle2,
+    Settings as SettingsIcon
 } from 'lucide-react';
 import { PageProps } from '@/types';
 import { cn } from '@/lib/utils';
@@ -25,7 +26,7 @@ import { cn } from '@/lib/utils';
 interface Props {
     header?: ReactNode;
     children: ReactNode;
-    activeTab?: 'dashboard' | 'inventory' | 'pos' | 'prescriptions' | 'ai-insights' | 'suppliers' | 'audit-logs';
+    activeTab?: 'dashboard' | 'inventory' | 'pos' | 'prescriptions' | 'ai-insights' | 'suppliers' | 'audit-logs' | 'settings';
 }
 
 export default function AuthenticatedLayout({ header, children, activeTab }: Props) {
@@ -78,6 +79,12 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
             label: 'Audit & Compliance',
             href: '/audit-logs',
             icon: History,
+        },
+        {
+            key: 'settings',
+            label: 'Settings',
+            href: '/settings',
+            icon: SettingsIcon,
         },
     ];
 
