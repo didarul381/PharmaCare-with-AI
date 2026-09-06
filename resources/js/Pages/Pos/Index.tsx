@@ -25,7 +25,10 @@ import {
     PauseCircle,
     PlayCircle,
     Bookmark,
-    FolderDown
+    FolderDown,
+    Percent,
+    BadgePercent,
+    SlidersHorizontal
 } from 'lucide-react';
 import { Medicine, Customer, Category, Sale } from '@/types';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
@@ -99,6 +102,8 @@ export default function PosIndex({ medicines, customers, categories }: Props) {
     const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('fixed');
     const [discountValue, setDiscountValue] = useState<number>(0);
     const [taxPercentage, setTaxPercentage] = useState<number>(5.00); // 5% default VAT
+    const [showDiscountDrawer, setShowDiscountDrawer] = useState<boolean>(false);
+    const [showTaxDrawer, setShowTaxDrawer] = useState<boolean>(false);
     const [notes, setNotes] = useState('');
 
     // Held Orders State
@@ -669,19 +674,242 @@ export default function PosIndex({ medicines, customers, categories }: Props) {
                         )}
                     </div>
 
+                    {/* Interactive Discount & VAT Controls */}
+                    <div className="p-3 bg-slate-950/70 border-t border-slate-800/80 space-y-2.5">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+                            <span className="flex items-center gap-1.5 text-cyan-300">
+                                <BadgePercent className="w-3.5 h-3.5" /> Adjustments & Taxes
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowDiscountDrawer(!showDiscountDrawer);
+                                        if (showTaxDrawer) setShowTaxDrawer(false);
+                                    }}
+                                    className={cn(
+                                        "px-2 py-1 rounded-lg text-[10px] font-bold border transition flex items-center gap-1",
+                                        discountValue > 0
+                                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                                            : showDiscountDrawer
+                                            ? "bg-cyan-500 text-slate-950 border-cyan-400"
+                                            : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+                                    )}
+                                >
+                                    <Tag className="w-2.5 h-2.5" />
+                                    <span>Discount {discountValue > 0 ? `(${discountType === 'percentage' ? `${discountValue}%` : `৳${discountValue}`})` : ''}</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowTaxDrawer(!showTaxDrawer);
+                                        if (showDiscountDrawer) setShowDiscountDrawer(false);
+                                    }}
+                                    className={cn(
+                                        "px-2 py-1 rounded-lg text-[10px] font-bold border transition flex items-center gap-1",
+                                        taxPercentage !== 5.0
+                                            ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"
+                                            : showTaxDrawer
+                                            ? "bg-cyan-500 text-slate-950 border-cyan-400"
+                                            : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+                                    )}
+                                >
+                                    <Percent className="w-2.5 h-2.5" />
+                                    <span>VAT ({taxPercentage}%)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Discount Config Drawer */}
+                        {showDiscountDrawer && (
+                            <div className="p-3 rounded-xl bg-slate-900 border border-cyan-500/30 space-y-2.5 animate-in fade-in slide-in-from-top-1">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-bold text-slate-300">Discount Mode:</span>
+                                    <div className="flex bg-slate-950 rounded-lg p-0.5 border border-slate-800">
+                                        <button
+                                            type="button"
+                                            onClick={() => setDiscountType('percentage')}
+                                            className={cn(
+                                                "px-2 py-0.5 rounded text-[10px] font-bold transition",
+                                                discountType === 'percentage' ? "bg-cyan-500 text-slate-950" : "text-slate-400 hover:text-white"
+                                            )}
+                                        >
+                                            % Percent
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setDiscountType('fixed')}
+                                            className={cn(
+                                                "px-2 py-0.5 rounded text-[10px] font-bold transition",
+                                                discountType === 'fixed' ? "bg-cyan-500 text-slate-950" : "text-slate-400 hover:text-white"
+                                            )}
+                                        >
+                                            ৳ Flat (BDT)
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Preset Pills */}
+                                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                                    {discountType === 'percentage' ? (
+                                        [0, 5, 7.5, 10, 15, 20].map((val) => (
+                                            <button
+                                                key={val}
+                                                type="button"
+                                                onClick={() => setDiscountValue(val)}
+                                                className={cn(
+                                                    "px-2.5 py-1 rounded-md text-[10px] font-bold shrink-0 transition",
+                                                    discountValue === val
+                                                        ? "bg-emerald-500 text-slate-950 font-black shadow-sm"
+                                                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                                                )}
+                                            >
+                                                {val === 0 ? 'None' : `${val}%`}
+                                            </button>
+                                        ))
+                                    ) : (
+                                        [0, 20, 50, 100, 200, 500].map((val) => (
+                                            <button
+                                                key={val}
+                                                type="button"
+                                                onClick={() => setDiscountValue(val)}
+                                                className={cn(
+                                                    "px-2.5 py-1 rounded-md text-[10px] font-bold shrink-0 transition",
+                                                    discountValue === val
+                                                        ? "bg-emerald-500 text-slate-950 font-black shadow-sm"
+                                                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                                                )}
+                                            >
+                                                {val === 0 ? '৳0' : `৳${val}`}
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+
+                                {/* Custom Input */}
+                                <div className="flex items-center gap-2 pt-1">
+                                    <span className="text-[10px] text-slate-400">Custom Value:</span>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step={discountType === 'percentage' ? '0.5' : '1'}
+                                        value={discountValue || ''}
+                                        placeholder={discountType === 'percentage' ? 'e.g. 12' : 'e.g. 150'}
+                                        onChange={(e) => setDiscountValue(Math.max(0, parseFloat(e.target.value) || 0))}
+                                        className="flex-1 text-xs bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-white font-bold focus:outline-none focus:border-cyan-500"
+                                    />
+                                    {discountValue > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setDiscountValue(0)}
+                                            className="text-[10px] font-bold text-rose-400 hover:text-rose-300 px-1.5 py-1 bg-rose-500/10 rounded-md border border-rose-500/20"
+                                        >
+                                            Reset
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Tax / VAT Config Drawer */}
+                        {showTaxDrawer && (
+                            <div className="p-3 rounded-xl bg-slate-900 border border-cyan-500/30 space-y-2.5 animate-in fade-in slide-in-from-top-1">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-bold text-slate-300">Govt VAT / Tax Setting:</span>
+                                    <span className="text-[10px] text-cyan-400 font-bold">Active: {taxPercentage}%</span>
+                                </div>
+
+                                {/* Quick VAT Preset Pills */}
+                                <div className="grid grid-cols-5 gap-1.5">
+                                    {[
+                                        { label: '0% Exempt', val: 0 },
+                                        { label: '5% Std', val: 5 },
+                                        { label: '7.5%', val: 7.5 },
+                                        { label: '10%', val: 10 },
+                                        { label: '15%', val: 15 },
+                                    ].map((preset) => (
+                                        <button
+                                            key={preset.val}
+                                            type="button"
+                                            onClick={() => setTaxPercentage(preset.val)}
+                                            className={cn(
+                                                "py-1.5 rounded-lg text-[10px] font-bold transition text-center",
+                                                taxPercentage === preset.val
+                                                    ? "bg-cyan-500 text-slate-950 font-black shadow-sm"
+                                                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                                            )}
+                                        >
+                                            {preset.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Custom VAT Input */}
+                                <div className="flex items-center gap-2 pt-1">
+                                    <span className="text-[10px] text-slate-400">Custom Tax Rate (%):</span>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step="0.1"
+                                        value={taxPercentage}
+                                        onChange={(e) => setTaxPercentage(Math.max(0, parseFloat(e.target.value) || 0))}
+                                        className="w-24 text-xs bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-white font-bold focus:outline-none focus:border-cyan-500"
+                                    />
+                                    <span className="text-xs text-slate-400 font-bold">%</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Cart Summary & Payment Drawer */}
                     <div className="p-4 bg-slate-900/90 border-t border-slate-800 space-y-3">
-                        {/* Subtotal & Taxes */}
-                        <div className="space-y-1 text-xs text-slate-400">
+                        {/* Subtotal, Discount & Taxes */}
+                        <div className="space-y-1.5 text-xs text-slate-400">
                             <div className="flex justify-between">
                                 <span>Subtotal</span>
                                 <span className="text-white font-medium">{formatCurrency(subtotal)}</span>
                             </div>
-                            <div className="flex justify-between">
-                                <span>Govt VAT / Tax ({taxPercentage}%)</span>
+
+                            {discountValue > 0 && (
+                                <div className="flex justify-between text-emerald-400 font-semibold">
+                                    <span className="flex items-center gap-1">
+                                        <span>Discount ({discountType === 'percentage' ? `${discountValue}%` : 'Flat'})</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setDiscountValue(0)}
+                                            className="text-slate-500 hover:text-rose-400 text-[10px] ml-1"
+                                            title="Remove discount"
+                                        >
+                                            ✕
+                                        </button>
+                                    </span>
+                                    <span>-{formatCurrency(discountAmount)}</span>
+                                </div>
+                            )}
+
+                            {discountValue > 0 && (
+                                <div className="flex justify-between text-[11px] text-slate-500">
+                                    <span>Taxable Subtotal</span>
+                                    <span>{formatCurrency(taxableAmount)}</span>
+                                </div>
+                            )}
+
+                            <div className="flex justify-between items-center">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowTaxDrawer(!showTaxDrawer)}
+                                    className="hover:text-cyan-300 transition flex items-center gap-1.5 group text-left"
+                                    title="Click to change Govt VAT rate"
+                                >
+                                    <span>Govt VAT / Tax ({taxPercentage}%)</span>
+                                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-cyan-400 border border-slate-700 group-hover:border-cyan-500/40">change</span>
+                                </button>
                                 <span className="text-white font-medium">{formatCurrency(taxAmount)}</span>
                             </div>
-                            <div className="flex justify-between items-center text-sm font-bold text-white pt-1 border-t border-slate-800">
+
+                            <div className="flex justify-between items-center text-sm font-bold text-white pt-1.5 border-t border-slate-800">
                                 <span>Grand Total</span>
                                 <span className="text-lg font-black text-emerald-400">{formatCurrency(grandTotal)}</span>
                             </div>
@@ -1011,8 +1239,14 @@ export default function PosIndex({ medicines, customers, categories }: Props) {
                                     <span>Subtotal:</span>
                                     <span>{formatCurrency(completedSale.subtotal)}</span>
                                 </div>
+                                {Number(completedSale.discount_amount) > 0 && (
+                                    <div className="flex justify-between text-[11px] text-emerald-700 font-bold">
+                                        <span>Discount ({completedSale.discount_type === 'percentage' ? `${completedSale.discount_value}%` : 'Flat'}):</span>
+                                        <span>-{formatCurrency(completedSale.discount_amount)}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between text-[11px]">
-                                    <span>Tax / VAT ({completedSale.tax_percentage}%):</span>
+                                    <span>Govt VAT / Tax ({completedSale.tax_percentage}%):</span>
                                     <span>{formatCurrency(completedSale.tax_amount)}</span>
                                 </div>
                                 <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-400">
