@@ -34,4 +34,22 @@ class AuditLog extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Helper static method to create audit logs cleanly.
+     */
+    public static function log(string $action, string $description, array $newValues = [], ?string $entityType = null, ?int $entityId = null, array $oldValues = []): self
+    {
+        return self::create([
+            'user_id' => auth()->id() ?? 1,
+            'action' => $action,
+            'entity_type' => $entityType ?? 'ClinicalReference',
+            'entity_id' => $entityId,
+            'old_values' => $oldValues,
+            'new_values' => array_merge(['description' => $description], $newValues),
+            'ip_address' => request()->ip() ?? '127.0.0.1',
+            'user_agent' => request()->userAgent() ?? 'System / API Importer',
+            'created_at' => now(),
+        ]);
+    }
 }

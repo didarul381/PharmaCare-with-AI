@@ -544,15 +544,20 @@ class ClinicalReferenceController extends Controller
     }
 
     /**
-     * 1-Click Import of generic clinical monograph or medicine from Free API into local database.
+     * 1-Click Import of generic clinical monograph and medicine brand from Free API into local database.
      */
     public function importFromApi(Request $request)
     {
         $validated = $request->validate([
             'brand_name' => 'nullable|string|max:255',
             'generic_name' => 'required|string|max:255',
+            'strength' => 'nullable|string|max:255',
+            'dosage_form' => 'nullable|string|max:255',
             'manufacturer' => 'nullable|string|max:255',
             'therapeutic_class' => 'nullable|string|max:255',
+            'unit_price' => 'nullable|string|max:255',
+            'strip_price' => 'nullable|string|max:255',
+            'pack_info' => 'nullable|string|max:255',
             'indications' => 'nullable|string',
             'dosage_guidelines' => 'nullable|string',
             'contraindications' => 'nullable|string',
@@ -560,15 +565,16 @@ class ClinicalReferenceController extends Controller
             'warnings' => 'nullable|string',
             'pregnancy' => 'nullable|string',
             'mechanism_of_action' => 'nullable|string',
+            'source' => 'nullable|string',
         ]);
 
         $genericName = trim($validated['generic_name']);
 
-        // Find or create generic monograph
+        // 1. Find or create generic monograph
         $generic = GenericName::firstOrCreate(
             ['name' => $genericName],
             [
-                'therapeutic_class' => $validated['therapeutic_class'] ?? 'Therapeutic Agent',
+                'therapeutic_class' => $validated['therapeutic_class'] ?? 'Clinical Therapeutic Agent',
                 'indications' => $validated['indications'] ?? null,
                 'dosage_guidelines' => $validated['dosage_guidelines'] ?? null,
                 'contraindications' => $validated['contraindications'] ?? null,
@@ -590,14 +596,78 @@ class ClinicalReferenceController extends Controller
             ]));
         }
 
-        AuditLog::log('generic_imported_from_api', "Imported clinical monograph for {$genericName} from free openFDA API", [
+        // 2. If Brand Name is provided, also create/sync the Medicine Product into the inventory catalog!
+        $medicineCreated = null;
+        if (!empty($validated['brand_name'])) {
+            $brandName = trim($validated['brand_name']);
+            $strength = trim($validated['strength'] ?? 'Standard');
+            $fullName = "{$brandName} {$strength}";
+
+            // Manufacturer
+            $mfgName = !empty($validated['manufacturer']) ? trim($validated['manufacturer']) : 'Standard Pharmaceuticals';
+            $mfg = Manufacturer::firstOrCreate(['name' => $mfgName], ['is_active' => true]);
+
+            // Dosage Form
+            $formName = !empty($validated['dosage_form']) ? trim($validated['dosage_form']) : 'Tablet';
+            $dosageForm = DosageForm::firstOrCreate(['name' => $formName]);
+
+            // Category
+            $catSlug = \Illuminate\Support\Str::slug($validated['therapeutic_class'] ?? 'General Medicine');
+            $category = Category::firstOrCreate(['slug' => $catSlug], ['name' => $validated['therapeutic_class'] ?? 'General Medicine']);
+
+            // Primary Unit
+            $unit = Unit::firstOrCreate(['name' => 'Piece'], ['short_name' => 'Pcs']);
+
+            // Parse price (remove currency symbol ৳ or $)
+            $rawPrice = preg_replace('/[^\d.]/', '', $validated['unit_price'] ?? '10.00');
+            $unitPrice = is_numeric($rawPrice) && (float)$rawPrice > 0 ? (float)$rawPrice : 10.00;
+
+            // Medicine
+            $sku = 'MED-' . strtoupper(\Illuminate\Support\Str::slug($fullName));
+            $medicineCreated = Medicine::updateOrCreate(
+                ['name' => $fullName],
+                [
+                    'brand_name' => $brandName,
+                    'generic_name_id' => $generic->id,
+                    'manufacturer_id' => $mfg->id,
+                    'dosage_form_id' => $dosageForm->id,
+                    'category_id' => $category->id,
+                    'primary_unit_id' => $unit->id,
+                    'strength' => $strength,
+                    'sku' => $sku,
+                    'is_active' => true,
+                    'side_effects' => $validated['side_effects'] ?? null,
+                    'usage_instructions' => $validated['dosage_guidelines'] ?? null,
+                ]
+            );
+
+            // Create initial batch if medicine has no batches
+            if ($medicineCreated->batches()->count() === 0) {
+                \App\Models\Batch::create([
+                    'medicine_id' => $medicineCreated->id,
+                    'batch_number' => 'BATCH-' . strtoupper(\Illuminate\Support\Str::random(6)),
+                    'cost_price' => round($unitPrice * 0.8, 2),
+                    'selling_price' => $unitPrice,
+                    'current_quantity' => 100,
+                    'initial_quantity' => 100,
+                    'expiry_date' => now()->addYears(2),
+                    'received_date' => now(),
+                    'is_active' => true,
+                ]);
+            }
+        }
+
+        AuditLog::log('generic_imported_from_api', "Imported clinical monograph for {$genericName} and brand {$validated['brand_name']}", [
             'generic_id' => $generic->id,
+            'medicine_id' => $medicineCreated?->id,
+            'source' => $validated['source'] ?? 'MedEx / openFDA',
         ]);
 
         return response()->json([
             'status' => 'success',
-            'message' => "Successfully imported and synchronized clinical monograph for '{$genericName}'!",
+            'message' => "Successfully imported and synchronized '{$genericName}' (" . ($validated['brand_name'] ?? 'Generic') . ") into Pharmacy Catalog!",
             'generic_id' => $generic->id,
+            'medicine_id' => $medicineCreated?->id,
         ]);
     }
 }
