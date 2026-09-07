@@ -144,10 +144,10 @@ export default function AuditLogsIndex({ logs, adjustments, users, metrics, filt
         <AuthenticatedLayout
             activeTab="audit-logs"
             header={
-                <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-                            Regulatory Compliance & Audit Trails
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>Regulatory Compliance & Audit</span>
                             <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1">
                                 <Lock className="w-3 h-3" />
                                 Tamper-Evident RBAC
@@ -158,13 +158,13 @@ export default function AuditLogsIndex({ logs, adjustments, users, metrics, filt
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center flex-wrap gap-2">
                         <button
                             onClick={handlePrint}
-                            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 transition"
+                            className="px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 transition"
                         >
                             <Printer className="w-3.5 h-3.5" />
-                            <span>Print Audit Report</span>
+                            <span>Print</span>
                         </button>
 
                         {/* View Switcher */}
@@ -172,20 +172,20 @@ export default function AuditLogsIndex({ logs, adjustments, users, metrics, filt
                             <button
                                 onClick={() => setActiveTab('audit')}
                                 className={cn(
-                                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition",
+                                    "px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition",
                                     activeTab === 'audit' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
                                 )}
                             >
-                                System Audit Ledger ({logs.length})
+                                Audit Ledger ({logs.length})
                             </button>
                             <button
                                 onClick={() => setActiveTab('adjustments')}
                                 className={cn(
-                                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition",
+                                    "px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition",
                                     activeTab === 'adjustments' ? "bg-amber-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
                                 )}
                             >
-                                Stock Adjustments ({adjustments.length})
+                                Adjustments ({adjustments.length})
                             </button>
                         </div>
                     </div>
@@ -195,7 +195,7 @@ export default function AuditLogsIndex({ logs, adjustments, users, metrics, filt
             <Head title="Regulatory Audit Logs & Compliance" />
 
             {/* Stat Metric Overview Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div className="glass-panel p-4 rounded-2xl border border-slate-800/80 relative overflow-hidden">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-semibold text-slate-400">Total Audit Logs</span>

@@ -148,10 +148,10 @@ export default function UsersIndex({ users, roles, metrics, filters }: Props) {
         <AuthenticatedLayout
             activeTab="settings"
             header={
-                <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-                            Staff & Role-Based Access Control (RBAC)
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>Staff & Role Access Control</span>
                             <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
                                 Super Admin Only
                             </span>
@@ -163,10 +163,10 @@ export default function UsersIndex({ users, roles, metrics, filters }: Props) {
 
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs shadow-glow-emerald flex items-center gap-2 transition self-start md:self-auto"
+                        className="px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs shadow-glow-emerald flex items-center gap-2 transition self-start sm:self-auto"
                     >
                         <UserPlus className="w-4 h-4" />
-                        <span>Add New Staff Member</span>
+                        <span>Add Staff Member</span>
                     </button>
                 </div>
             }
@@ -174,7 +174,7 @@ export default function UsersIndex({ users, roles, metrics, filters }: Props) {
             <Head title="Staff Directory & Role Management" />
 
             {/* Stat Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4 sm:mb-6">
                 <div className="glass-panel p-3.5 rounded-2xl border border-slate-800/80">
                     <span className="text-[11px] font-semibold text-slate-400 block">Total Staff</span>
                     <span className="text-xl font-black text-white">{metrics.total_users}</span>

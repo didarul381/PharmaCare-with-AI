@@ -524,14 +524,14 @@ export default function ClinicalReferenceIndex({
         <AuthenticatedLayout
             activeTab="clinical-reference"
             header={
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-slate-950 font-black shadow-glow-emerald">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-slate-950 font-black shadow-glow-emerald shrink-0">
                             <BookOpen className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <div className="flex items-center gap-2">
-                                <h1 className="text-xl font-black text-white tracking-tight">MedEx Medicine Dictionary</h1>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">MedEx Medicine Dictionary</h1>
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
                                     Live BD Encyclopedia
                                 </span>
@@ -543,7 +543,7 @@ export default function ClinicalReferenceIndex({
                     </div>
 
                     {/* Quick Stats Pill */}
-                    <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-800 rounded-2xl px-3 py-1.5 text-xs text-slate-300">
+                    <div className="flex items-center flex-wrap gap-2 bg-slate-900/80 border border-slate-800 rounded-2xl px-3 py-1.5 text-xs text-slate-300">
                         <span><strong>{metrics.total_brands}</strong> Brands</span>
                         <span className="text-slate-600">•</span>
                         <span><strong>{metrics.total_generics}</strong> Generics</span>
@@ -556,27 +556,27 @@ export default function ClinicalReferenceIndex({
             <Head title="MedEx Medicine Dictionary & Clinical Reference" />
 
             {/* MedEx Universal Hero Search & Category Bar */}
-            <div className="glass-panel rounded-3xl p-5 mb-6 border border-slate-800 space-y-4 shadow-xl">
+            <div className="glass-panel rounded-3xl p-3 sm:p-5 mb-4 sm:mb-6 border border-slate-800 space-y-3 sm:space-y-4 shadow-xl">
                 {/* Search input with category icons */}
                 <form onSubmit={handleSearchSubmit} className="relative w-full">
-                    <Search className="w-5 h-5 text-emerald-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                    <Search className="w-4 sm:w-5 h-4 sm:h-5 text-emerald-400 absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                         type="text"
-                        placeholder="Search by Brand Name (e.g. Napa, Sergel, Ace), Generic Molecule, or Company..."
+                        placeholder="Search Brand Name (e.g. Napa, Sergel), Generic, Company..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-12 pr-28 py-3 text-sm bg-slate-900/90 border border-slate-700/80 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition shadow-inner"
+                        className="w-full pl-10 sm:pl-12 pr-20 sm:pr-28 py-2.5 sm:py-3 text-xs sm:text-sm bg-slate-900/90 border border-slate-700/80 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition shadow-inner"
                     />
                     <button
                         type="submit"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs rounded-xl shadow-glow-emerald transition"
+                        className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 px-3 sm:px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs rounded-xl shadow-glow-emerald transition"
                     >
                         Search
                     </button>
                 </form>
 
                 {/* MedEx Main Category Switcher */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1.5 no-scrollbar">
                     <button
                         onClick={() => handleModeSwitch('brands')}
                         className={cn(

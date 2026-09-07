@@ -96,6 +96,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
     const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [cart, setCart] = useState<CartItem[]>([]);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [mobileTab, setMobileTab] = useState<'catalog' | 'cart'>('catalog');
 
     // Payment & checkout
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'digital_wallet' | 'credit'>('cash');
@@ -411,10 +412,10 @@ export default function PosIndex({ medicines, customers, categories, store_setti
         <AuthenticatedLayout
             activeTab="pos"
             header={
-                <div className="flex items-center justify-between w-full">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-                            POS Dispensing Engine
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>POS Dispensing Engine</span>
                             <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">
                                 FEFO FIFO Active
                             </span>
@@ -424,7 +425,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                         {/* Held Orders Button with Badge */}
                         <button
                             onClick={() => setShowHeldModal(true)}
@@ -457,7 +458,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                             </button>
                         )}
 
-                        <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300">
+                        <div className="hidden md:block px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300">
                             Shortcuts: <kbd className="text-cyan-400">F2</kbd> Search | <kbd className="text-amber-400">F9</kbd> Hold | <kbd className="text-emerald-400">F8</kbd> Pay
                         </div>
                     </div>
@@ -466,9 +467,38 @@ export default function PosIndex({ medicines, customers, categories, store_setti
         >
             <Head title="POS & Dispensing Terminal" />
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-170px)]">
+            {/* Mobile Tab Switcher */}
+            <div className="flex lg:hidden items-center bg-slate-900 border border-slate-800 rounded-xl p-1 mb-4">
+                <button
+                    type="button"
+                    onClick={() => setMobileTab('catalog')}
+                    className={cn(
+                        "flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5",
+                        mobileTab === 'catalog' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                    )}
+                >
+                    <Search className="w-3.5 h-3.5" />
+                    <span>Catalog ({filteredMedicines.length})</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setMobileTab('cart')}
+                    className={cn(
+                        "flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 relative",
+                        mobileTab === 'cart' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                    )}
+                >
+                    <ShoppingCart className="w-3.5 h-3.5" />
+                    <span>Cart ({cart.length}) - {formatCurrency(grandTotal)}</span>
+                    {cart.length > 0 && (
+                        <span className="w-2 h-2 rounded-full bg-cyan-400 absolute top-1.5 right-2" />
+                    )}
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 min-h-[calc(100vh-170px)] lg:h-[calc(100vh-140px)]">
                 {/* Left Area: Medicine Grid & Catalog (8 cols) */}
-                <div className="lg:col-span-7 xl:col-span-8 flex flex-col h-full overflow-hidden">
+                <div className={cn("lg:col-span-7 xl:col-span-8 flex flex-col h-full overflow-hidden", mobileTab !== 'catalog' && "hidden lg:flex")}>
                     {/* Search & Category Pills */}
                     <div className="glass-panel rounded-2xl p-3 mb-4 border border-slate-800/80 flex flex-col sm:flex-row items-center gap-3">
                         <div className="relative flex-1 w-full">
@@ -555,10 +585,27 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                             </div>
                         ))}
                     </div>
+
+                    {/* Mobile Floating Cart Action */}
+                    {cart.length > 0 && (
+                        <div
+                            onClick={() => setMobileTab('cart')}
+                            className="lg:hidden mt-3 p-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold flex items-center justify-between shadow-glow-emerald cursor-pointer"
+                        >
+                            <div className="flex items-center gap-2">
+                                <ShoppingCart className="w-4 h-4" />
+                                <span className="text-xs">{cart.length} item{cart.length > 1 ? 's' : ''} in cart</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-xs">
+                                <span>{formatCurrency(grandTotal)}</span>
+                                <span className="text-[10px] bg-slate-950 text-white px-2 py-0.5 rounded-lg ml-1.5">Checkout &rarr;</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Area: Dynamic POS Order Cart (4 cols) */}
-                <div className="lg:col-span-5 xl:col-span-4 glass-panel rounded-2xl border border-slate-800/80 flex flex-col h-full overflow-hidden shadow-2xl bg-gradient-to-b from-[#0d1322] to-[#070b13]">
+                <div className={cn("lg:col-span-5 xl:col-span-4 glass-panel rounded-2xl border border-slate-800/80 flex flex-col h-full overflow-hidden shadow-2xl bg-gradient-to-b from-[#0d1322] to-[#070b13]", mobileTab !== 'cart' && "hidden lg:flex")}>
                     {/* Cart Header with Hold & Clear buttons */}
                     <div className="p-4 border-b border-slate-800 flex items-center justify-between">
                         <div className="flex items-center gap-2">

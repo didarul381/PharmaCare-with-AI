@@ -71,10 +71,10 @@ export default function ProfileEdit({ user, roles, recentLogs }: Props) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-                            Staff Profile & Security Credentials
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>Staff Profile & Security</span>
                         </h1>
                         <p className="text-xs text-slate-400 mt-0.5">
                             Manage institutional staff profile, contact coordinates, and secure access passwords
@@ -82,7 +82,7 @@ export default function ProfileEdit({ user, roles, recentLogs }: Props) {
                     </div>
 
                     <div className={cn(
-                        "flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold self-start md:self-auto",
+                        "flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold self-start sm:self-auto",
                         roleBadge(user.role)
                     )}>
                         <Shield className="w-3.5 h-3.5" />

@@ -112,10 +112,10 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
         <AuthenticatedLayout
             activeTab="suppliers"
             header={
-                <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-                            Suppliers & Purchase Order (PO) Management
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                            <span>Suppliers & Purchase Order (PO)</span>
                         </h1>
                         <p className="text-xs text-slate-400 mt-0.5">
                             Vendor ledgers, procurement orders, and Goods Receipt Notes (GRN) batch generation
@@ -124,7 +124,7 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
 
                     <button
                         onClick={() => setShowPoModal(true)}
-                        className="px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-glow-emerald flex items-center gap-1.5 transition"
+                        className="px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-glow-emerald flex items-center gap-1.5 transition self-start sm:self-auto"
                     >
                         <Plus className="w-3.5 h-3.5" />
                         <span>Create Purchase Order</span>
@@ -135,7 +135,7 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
             <Head title="Suppliers & Purchase Orders" />
 
             {/* Suppliers Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
                 {suppliers.map((s) => (
                     <div key={s.id} className="glass-panel rounded-2xl p-4 border border-slate-800/80 flex flex-col justify-between">
                         <div>

@@ -59,10 +59,10 @@ export default function Dashboard({
         <AuthenticatedLayout
             activeTab="dashboard"
             header={
-                <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-                            Executive Overview & Telemetry
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>Executive Overview & Telemetry</span>
                             <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium">
                                 Realtime FEFO
                             </span>
@@ -72,19 +72,19 @@ export default function Dashboard({
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                         <Link
                             href="/inventory?filter_expiry=critical"
-                            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-500/30 transition flex items-center gap-1.5"
+                            className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-500/30 transition flex items-center gap-1.5"
                         >
-                            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                            <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                             <span>{metrics.critical_expiring_count} Near Expiry</span>
                         </Link>
                         <Link
                             href="/pos"
-                            className="px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-glow-emerald transition flex items-center gap-1.5"
+                            className="px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-glow-emerald transition flex items-center gap-1.5"
                         >
-                            <ShoppingCart className="w-3.5 h-3.5" />
+                            <ShoppingCart className="w-3.5 h-3.5 text-slate-950 shrink-0" />
                             <span>Open POS (F2)</span>
                         </Link>
                     </div>

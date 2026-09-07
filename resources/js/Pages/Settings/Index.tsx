@@ -163,10 +163,10 @@ export default function SettingsIndex({ settings, ai_config }: Props) {
         <AuthenticatedLayout
             activeTab="settings"
             header={
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-                            Pharmacy & POS Settings
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>Pharmacy & POS Settings</span>
                             <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">
                                 Store Profile & Invoicing
                             </span>
@@ -179,7 +179,7 @@ export default function SettingsIndex({ settings, ai_config }: Props) {
                     <button
                         onClick={handleSubmit}
                         disabled={isSaving}
-                        className="px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-glow-emerald flex items-center justify-center gap-2 hover:from-emerald-400 hover:to-teal-400 transition transform hover:scale-[1.02] disabled:opacity-50"
+                        className="px-4 sm:px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs shadow-glow-emerald flex items-center justify-center gap-2 transition transform hover:scale-[1.02] disabled:opacity-50 self-start sm:self-auto"
                     >
                         <Save className="w-4 h-4 text-slate-950" />
                         <span>{isSaving ? 'Saving Changes...' : 'Save Settings'}</span>

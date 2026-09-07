@@ -83,10 +83,10 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
         <AuthenticatedLayout
             activeTab="ai-insights"
             header={
-                <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-                            AI Clinical Intelligence & Forecasting
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>AI Clinical Intelligence & Forecasting</span>
                             <span className="text-xs px-2.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-500/30 to-emerald-500/30 text-cyan-300 border border-cyan-500/40 font-bold">
                                 LLM + Machine Learning Suite
                             </span>
@@ -108,7 +108,7 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
             <Head title="AI Intelligence & Demand Forecasting" />
 
             {/* Top KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div className="glass-panel rounded-2xl p-4 border border-slate-800/80">
                     <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
                         Critical Stockout Risks (&le;7d)

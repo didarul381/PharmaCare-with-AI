@@ -365,42 +365,42 @@ export default function InventoryIndex({
         <AuthenticatedLayout
             activeTab="inventory"
             header={
-                <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-                            Pharmaceutical Inventory & FEFO Vault
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                            <span>Pharmaceutical Inventory & FEFO Vault</span>
                         </h1>
                         <p className="text-xs text-slate-400 mt-0.5">
                             Batch tracking, expiry timelines, packaging conversions, and regulatory logs
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center flex-wrap gap-2">
                         {/* View Switcher */}
                         <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-0.5">
                             <button
                                 onClick={() => setViewMode('medicines')}
                                 className={cn(
-                                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition",
+                                    "px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition",
                                     viewMode === 'medicines' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
                                 )}
                             >
-                                Medicine Master ({medicines.length})
+                                Medicines ({medicines.length})
                             </button>
                             <button
                                 onClick={() => setViewMode('batches')}
                                 className={cn(
-                                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition",
+                                    "px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition",
                                     viewMode === 'batches' ? "bg-cyan-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
                                 )}
                             >
-                                FEFO Batches ({batches.length})
+                                Batches ({batches.length})
                             </button>
                         </div>
 
                         <button
                             onClick={() => setShowBatchModal(true)}
-                            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 transition flex items-center gap-1.5"
+                            className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 transition flex items-center gap-1.5"
                         >
                             <Plus className="w-3.5 h-3.5" />
                             <span>Add Batch</span>
@@ -408,7 +408,7 @@ export default function InventoryIndex({
 
                         <button
                             onClick={() => setShowMedModal(true)}
-                            className="px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-glow-emerald transition flex items-center gap-1.5"
+                            className="px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-glow-emerald transition flex items-center gap-1.5"
                         >
                             <Plus className="w-3.5 h-3.5" />
                             <span>Add Medicine</span>
@@ -420,8 +420,8 @@ export default function InventoryIndex({
             <Head title="Inventory & FEFO Manager" />
 
             {/* Filter & Search Bar */}
-            <div className="glass-panel rounded-2xl p-4 mb-6 border border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
-                <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[260px] relative">
+            <div className="glass-panel rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 border border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <form onSubmit={handleSearchSubmit} className="flex-1 min-w-0 relative">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                         type="text"
@@ -440,7 +440,7 @@ export default function InventoryIndex({
                             setSelectedCategory(e.target.value);
                             applyFilters({ category_id: e.target.value });
                         }}
-                        className="text-xs bg-slate-900 border border-slate-800 rounded-xl text-slate-300 px-3 py-1.5 focus:outline-none focus:border-emerald-500"
+                        className="flex-1 sm:flex-initial text-xs bg-slate-900 border border-slate-800 rounded-xl text-slate-300 px-3 py-1.5 focus:outline-none focus:border-emerald-500"
                     >
                         <option value="">All Categories</option>
                         {categories.map((c) => (
@@ -455,7 +455,7 @@ export default function InventoryIndex({
                             setSelectedExpiry(e.target.value);
                             applyFilters({ filter_expiry: e.target.value });
                         }}
-                        className="text-xs bg-slate-900 border border-slate-800 rounded-xl text-slate-300 px-3 py-1.5 focus:outline-none focus:border-emerald-500"
+                        className="flex-1 sm:flex-initial text-xs bg-slate-900 border border-slate-800 rounded-xl text-slate-300 px-3 py-1.5 focus:outline-none focus:border-emerald-500"
                     >
                         <option value="">All Expiry Status</option>
                         <option value="critical">Critical (&lt; 30 Days)</option>

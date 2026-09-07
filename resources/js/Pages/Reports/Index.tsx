@@ -336,46 +336,47 @@ export default function ReportsIndex({
         <AuthenticatedLayout
             activeTab="reports"
             header={
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                            <BarChart3 className="w-6 h-6 text-emerald-400" />
-                            <span>Executive Intelligence & Reports</span>
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>Reports & Financial Intelligence</span>
+                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                                Realtime Auditing
+                            </span>
                         </h1>
                         <p className="text-xs text-slate-400 mt-0.5">
-                            Period: <strong className="text-slate-200">{filters.date_label}</strong>
+                            P&L statements, COGS margins, staff performance metrics, fast/slow moving items & controlled substance logs
                         </p>
                     </div>
 
-                    {/* Actions: CSV Export & Print */}
-                    <div className="flex flex-wrap items-center gap-2">
-                        <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-0.5">
+                    <div className="flex items-center flex-wrap gap-2">
+                        {/* CSV Export Dropdown */}
+                        <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 gap-1">
                             <select
-                                value={exportType}
-                                onChange={(e) => setExportType(e.target.value as any)}
-                                className="text-xs bg-transparent border-0 text-slate-300 px-2.5 py-1.5 focus:outline-none focus:ring-0 cursor-pointer"
+                                value={exportReportType}
+                                onChange={(e) => setExportReportType(e.target.value)}
+                                className="text-xs bg-slate-950 border-0 rounded-lg text-slate-300 px-2 py-1 focus:ring-0 focus:outline-none"
                             >
-                                <option value="p_and_l">P&L Summary (CSV)</option>
-                                <option value="sales">Sales Transactions (CSV)</option>
+                                <option value="sales_summary">Sales & Profit Ledger (CSV)</option>
                                 <option value="inventory">Inventory Asset Valuation (CSV)</option>
                                 <option value="controlled_substances">DGDA Controlled Log (CSV)</option>
                                 <option value="customer_dues">Customer Receivables (CSV)</option>
                             </select>
                             <button
                                 onClick={handleDownloadCsv}
-                                className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-xs flex items-center gap-1.5 transition"
+                                className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-xs flex items-center gap-1.5 transition"
                             >
                                 <Download className="w-3.5 h-3.5" />
-                                <span>Export</span>
+                                <span className="hidden sm:inline">Export</span>
                             </button>
                         </div>
 
                         <button
                             onClick={handlePrintReport}
-                            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 border border-slate-700 transition"
+                            className="px-3 sm:px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 border border-slate-700 transition"
                         >
                             <Printer className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>Print Report</span>
+                            <span>Print</span>
                         </button>
                     </div>
                 </div>
@@ -384,14 +385,14 @@ export default function ReportsIndex({
             <Head title="Reports & Financial Intelligence" />
 
             {/* Date Range Filter Bar */}
-            <div className="glass-panel rounded-2xl p-3 mb-6 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+            <div className="glass-panel rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 md:pb-0 no-scrollbar">
                     {presets.map((p) => (
                         <button
                             key={p.key}
                             onClick={() => handlePresetChange(p.key)}
                             className={cn(
-                                "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition",
+                                "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition shrink-0",
                                 selectedPreset === p.key
                                     ? "bg-emerald-500 text-slate-950 font-bold shadow-glow-emerald"
                                     : "bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800"
@@ -404,7 +405,7 @@ export default function ReportsIndex({
 
                 {/* Custom Range Selector */}
                 {showCustomRange && (
-                    <form onSubmit={handleCustomFilterSubmit} className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
+                    <form onSubmit={handleCustomFilterSubmit} className="flex flex-wrap items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
                         <input
                             type="date"
                             value={startDate}
@@ -429,7 +430,7 @@ export default function ReportsIndex({
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-800 mb-6 overflow-x-auto">
+            <div className="flex items-center gap-2 border-b border-slate-800 mb-6 overflow-x-auto no-scrollbar">
                 <button
                     onClick={() => handleTabSwitch('executive')}
                     className={cn(

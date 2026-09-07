@@ -344,10 +344,10 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
         <AuthenticatedLayout
             activeTab="invoices"
             header={
-                <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-                            Invoice Manager & Clinical Sales Ledger
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>Invoice Manager & Sales Ledger</span>
                             <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">
                                 Multi-Template Print
                             </span>
@@ -372,7 +372,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
             <Head title="Invoice Manager & Sales Ledger" />
 
             {/* Top Financial Stat Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div className="glass-panel p-4 rounded-2xl border border-slate-800/80 relative overflow-hidden">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-semibold text-slate-400">Total Invoiced Sales</span>
@@ -419,9 +419,9 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
             </div>
 
             {/* Filters Bar */}
-            <div className="glass-panel rounded-2xl p-4 mb-6 border border-slate-800/80 flex flex-col gap-3">
+            <div className="glass-panel rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 border border-slate-800/80 flex flex-col gap-3">
                 {/* Status Pills */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1.5 no-scrollbar">
                     {[
                         { key: 'all', label: 'All Invoices' },
                         { key: 'paid', label: 'Paid Full' },
@@ -435,7 +435,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                 key={st.key}
                                 onClick={() => handleStatusClick(st.key)}
                                 className={cn(
-                                    "px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition",
+                                    "px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition shrink-0",
                                     isSelected
                                         ? "bg-cyan-500 text-slate-950 font-bold shadow-glow-cyan"
                                         : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
