@@ -353,11 +353,12 @@ export default function ReportsIndex({
                         {/* CSV Export Dropdown */}
                         <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 gap-1">
                             <select
-                                value={exportReportType}
-                                onChange={(e) => setExportReportType(e.target.value)}
+                                value={exportType}
+                                onChange={(e) => setExportType(e.target.value as any)}
                                 className="text-xs bg-slate-950 border-0 rounded-lg text-slate-300 px-2 py-1 focus:ring-0 focus:outline-none"
                             >
-                                <option value="sales_summary">Sales & Profit Ledger (CSV)</option>
+                                <option value="p_and_l">P&L Summary (CSV)</option>
+                                <option value="sales">Sales Transactions (CSV)</option>
                                 <option value="inventory">Inventory Asset Valuation (CSV)</option>
                                 <option value="controlled_substances">DGDA Controlled Log (CSV)</option>
                                 <option value="customer_dues">Customer Receivables (CSV)</option>
