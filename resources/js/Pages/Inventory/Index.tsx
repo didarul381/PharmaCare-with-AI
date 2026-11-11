@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Medicine, Batch, Category, GenericName, Manufacturer, DosageForm, Unit } from '@/types';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
+import { confirmDialog } from '@/lib/notify';
 
 interface Props {
     medicines: Medicine[];
@@ -355,10 +356,14 @@ export default function InventoryIndex({
         setShowAdjustModal(true);
     };
 
-    const handleDeleteMedicine = (med: Medicine) => {
-        if (confirm(`Are you sure you want to deactivate and archive '${med.name}' (${med.sku})?\n\nThis action will be logged in the immutable regulatory audit trail.`)) {
-            router.delete(`/inventory/medicines/${med.id}`);
-        }
+    const handleDeleteMedicine = async (med: Medicine) => {
+        const ok = await confirmDialog({
+            title: `Archive ${med.name}?`,
+            message: `It will be hidden from the POS and inventory list. Past sales stay intact and the action is recorded in the activity log.`,
+            confirmLabel: 'Archive medicine',
+            tone: 'danger',
+        });
+        if (ok) router.delete(`/inventory/medicines/${med.id}`);
     };
 
     return (
@@ -367,11 +372,11 @@ export default function InventoryIndex({
             header={
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
-                            <span>Pharmaceutical Inventory & FEFO Vault</span>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2">
+                            <span>Inventory</span>
                         </h1>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                            Batch tracking, expiry timelines, packaging conversions, and regulatory logs
+                        <p className="text-sm text-slate-400 mt-1">
+                            Medicines, batches, expiry dates and stock levels.
                         </p>
                     </div>
 
@@ -382,7 +387,7 @@ export default function InventoryIndex({
                                 onClick={() => setViewMode('medicines')}
                                 className={cn(
                                     "px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition",
-                                    viewMode === 'medicines' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                                    viewMode === 'medicines' ? "bg-emerald-500 text-ink shadow" : "text-slate-400 hover:text-white"
                                 )}
                             >
                                 Medicines ({medicines.length})
@@ -391,7 +396,7 @@ export default function InventoryIndex({
                                 onClick={() => setViewMode('batches')}
                                 className={cn(
                                     "px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition",
-                                    viewMode === 'batches' ? "bg-cyan-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                                    viewMode === 'batches' ? "bg-cyan-500 text-ink shadow" : "text-slate-400 hover:text-white"
                                 )}
                             >
                                 Batches ({batches.length})
@@ -408,7 +413,7 @@ export default function InventoryIndex({
 
                         <button
                             onClick={() => setShowMedModal(true)}
-                            className="px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-glow-emerald transition flex items-center gap-1.5"
+                            className="px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-ink shadow-glow-emerald transition flex items-center gap-1.5"
                         >
                             <Plus className="w-3.5 h-3.5" />
                             <span>Add Medicine</span>
@@ -417,7 +422,7 @@ export default function InventoryIndex({
                 </div>
             }
         >
-            <Head title="Inventory & FEFO Manager" />
+            <Head title="Inventory" />
 
             {/* Filter & Search Bar */}
             <div className="glass-panel rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 border border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -480,12 +485,64 @@ export default function InventoryIndex({
             </div>
 
             {/* View 1: Medicine Catalog Table */}
-            {viewMode === 'medicines' && (
+            {viewMode === 'medicines' && medicines.length === 0 && (
+                <div className="glass-panel rounded-2xl border border-slate-800/80 p-10 text-center">
+                    <Boxes className="w-10 h-10 mx-auto text-slate-600" />
+                    <p className="mt-3 font-semibold text-white">No medicines found</p>
+                    <p className="text-sm text-slate-400 mt-1">Try a different search or filter, or add your first medicine.</p>
+                </div>
+            )}
+
+            {viewMode === 'medicines' && medicines.length > 0 && (
                 <div className="glass-panel rounded-2xl border border-slate-800/80 overflow-hidden">
-                    <div className="overflow-x-auto">
+                    {/* Phones: card list */}
+                    <ul className="md:hidden divide-y divide-slate-800/60">
+                        {medicines.map((med) => (
+                            <li key={med.id} className="p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <p className="font-bold text-white">{med.name}</p>
+                                        <p className="text-sm text-slate-400">{med.generic_name?.name || 'Generic not set'}{med.strength ? ` · ${med.strength}` : ''}</p>
+                                        <p className="mt-1 text-xs text-slate-500 font-mono">{med.sku}</p>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                        <p className="font-bold text-emerald-400">{formatCurrency(med.current_selling_price)}</p>
+                                        <p className={cn('text-sm font-semibold', med.is_low_stock ? 'text-amber-400' : 'text-slate-300')}>
+                                            {med.total_stock} {med.secondary_unit?.name || 'units'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                    <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-xs">{med.category?.name || 'General'}</span>
+                                    {med.is_low_stock && <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-400 text-xs font-semibold">Low stock</span>}
+                                    {med.is_controlled_substance && <span className="px-2 py-0.5 rounded-md bg-rose-500/15 text-rose-400 text-xs font-semibold">Controlled</span>}
+                                </div>
+                                <div className="mt-3 flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => openAdjustForMedicine(med)}
+                                        className="flex-1 min-h-[44px] rounded-xl text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+                                    >
+                                        Adjust stock
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteMedicine(med)}
+                                        aria-label={`Archive ${med.name}`}
+                                        className="min-h-[44px] min-w-[44px] rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+
+                    {/* Tablets & desktop: table */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left text-xs">
                             <thead>
-                                <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase text-[10px] font-bold">
+                                <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase text-[11px] font-bold">
                                     <th className="py-3 px-4">Medicine & Generic</th>
                                     <th className="py-3 px-4">SKU / Barcode</th>
                                     <th className="py-3 px-4">Category</th>
@@ -507,11 +564,11 @@ export default function InventoryIndex({
                                                     <span className="font-bold text-white text-sm block">
                                                         {med.name}
                                                     </span>
-                                                    <span className="text-[11px] text-slate-400">
+                                                    <span className="text-xs text-slate-400">
                                                         {med.generic_name?.name || 'Generic unassigned'} ({med.strength || 'N/A'})
                                                     </span>
                                                     {med.is_controlled_substance && (
-                                                        <span className="inline-block mt-0.5 px-1.5 py-0.2 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded text-[9px] font-bold">
+                                                        <span className="inline-block mt-0.5 px-1.5 py-0.2 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded text-[11px] font-bold">
                                                             CONTROLLED SUBSTANCE
                                                         </span>
                                                     )}
@@ -520,16 +577,16 @@ export default function InventoryIndex({
                                         </td>
                                         <td className="py-3 px-4 font-mono text-cyan-300">
                                             <div>{med.sku}</div>
-                                            <div className="text-[10px] text-slate-500">{med.barcode || 'No barcode'}</div>
+                                            <div className="text-[11px] text-slate-500">{med.barcode || 'No barcode'}</div>
                                         </td>
                                         <td className="py-3 px-4 text-slate-300">
-                                            <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700/60 text-[11px]">
+                                            <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700/60 text-xs">
                                                 {med.category?.name || 'General'}
                                             </span>
                                         </td>
                                         <td className="py-3 px-4 text-slate-300">
                                             <div>{med.dosage_form?.name || 'Tablet'}</div>
-                                            <div className="text-[10px] text-slate-400">
+                                            <div className="text-[11px] text-slate-400">
                                                 1 {med.primary_unit?.name || 'Box'} = {med.unit_conversion_rate} {med.secondary_unit?.name || 'Strip'}
                                             </div>
                                         </td>
@@ -541,12 +598,12 @@ export default function InventoryIndex({
                                                 )}>
                                                     {med.total_stock}
                                                 </span>
-                                                <span className="text-[10px] text-slate-400">
+                                                <span className="text-[11px] text-slate-400">
                                                     {med.secondary_unit?.name || 'Units'}
                                                 </span>
                                             </div>
                                             {med.is_low_stock && (
-                                                <span className="text-[10px] text-amber-400 flex items-center gap-0.5">
+                                                <span className="text-[11px] text-amber-400 flex items-center gap-0.5">
                                                     <AlertTriangle className="w-2.5 h-2.5" /> Low Stock
                                                 </span>
                                             )}
@@ -564,8 +621,9 @@ export default function InventoryIndex({
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteMedicine(med)}
-                                                    title="Deactivate / Archive (Audit Logged)"
-                                                    className="p-1 rounded-lg text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition"
+                                                    title="Archive medicine"
+                                                    aria-label={`Archive ${med.name}`}
+                                                    className="p-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
@@ -582,17 +640,45 @@ export default function InventoryIndex({
             {/* View 2: FEFO Batches Inspector */}
             {viewMode === 'batches' && (
                 <div className="glass-panel rounded-2xl border border-slate-800/80 overflow-hidden">
-                    <div className="p-4 bg-slate-900/60 border-b border-slate-800 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs text-slate-300">
-                            <span className="font-bold text-white">FEFO Queue Protocol:</span>
-                            <span>Items sorted strictly by earliest expiration date first.</span>
-                        </div>
+                    <div className="p-4 bg-slate-900/60 border-b border-slate-800 text-sm text-slate-300">
+                        <span className="font-bold text-white">Sorted by expiry date.</span> The POS always sells the batch at the top first.
                     </div>
 
-                    <div className="overflow-x-auto">
+                    {batches.length === 0 && (
+                        <p className="p-10 text-center text-sm text-slate-400">No batches yet. Use “Add Batch” when new stock arrives.</p>
+                    )}
+
+                    {/* Phones: card list */}
+                    <ul className="md:hidden divide-y divide-slate-800/60">
+                        {batches.map((b) => (
+                            <li key={b.id} className="p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <p className="font-bold text-white">{b.medicine?.name}</p>
+                                        <p className="text-xs font-mono text-cyan-300">{b.batch_number}</p>
+                                    </div>
+                                    <span className={cn(
+                                        'px-2 py-0.5 rounded-full text-xs font-bold border shrink-0',
+                                        b.days_until_expiry <= 30 ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                                            : b.days_until_expiry <= 90 ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                            : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+                                    )}>
+                                        {b.days_until_expiry} days
+                                    </span>
+                                </div>
+                                <dl className="mt-2 grid grid-cols-3 gap-2 text-sm">
+                                    <div><dt className="text-xs text-slate-500">Expires</dt><dd className="text-slate-200">{formatDate(b.expiry_date)}</dd></div>
+                                    <div><dt className="text-xs text-slate-500">Stock</dt><dd className="text-slate-200">{b.current_quantity}/{b.initial_quantity}</dd></div>
+                                    <div><dt className="text-xs text-slate-500">Price</dt><dd className="text-emerald-400 font-semibold">{formatCurrency(b.selling_price)}</dd></div>
+                                </dl>
+                            </li>
+                        ))}
+                    </ul>
+
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left text-xs">
                             <thead>
-                                <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase text-[10px] font-bold">
+                                <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase text-[11px] font-bold">
                                     <th className="py-3 px-4">Batch Number</th>
                                     <th className="py-3 px-4">Medicine Item</th>
                                     <th className="py-3 px-4">Expiry Date</th>
@@ -610,14 +696,14 @@ export default function InventoryIndex({
                                         </td>
                                         <td className="py-3 px-4">
                                             <span className="font-bold text-white block">{b.medicine?.name}</span>
-                                            <span className="text-[11px] text-slate-400">{b.medicine?.generic_name?.name}</span>
+                                            <span className="text-xs text-slate-400">{b.medicine?.generic_name?.name}</span>
                                         </td>
                                         <td className="py-3 px-4 font-medium text-slate-300">
                                             {formatDate(b.expiry_date)}
                                         </td>
                                         <td className="py-3 px-4">
                                             <span className={cn(
-                                                "px-2.5 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1",
+                                                "px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1",
                                                 b.days_until_expiry <= 30
                                                     ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
                                                     : b.days_until_expiry <= 90
@@ -633,7 +719,7 @@ export default function InventoryIndex({
                                         </td>
                                         <td className="py-3 px-4">
                                             <div className="text-emerald-400 font-bold">{formatCurrency(b.selling_price)}</div>
-                                            <div className="text-[10px] text-slate-500">Cost: {formatCurrency(b.cost_price)}</div>
+                                            <div className="text-[11px] text-slate-500">Cost: {formatCurrency(b.cost_price)}</div>
                                         </td>
                                         <td className="py-3 px-4 text-slate-400">
                                             {b.supplier?.name || 'Direct Procurement'}
@@ -703,7 +789,7 @@ export default function InventoryIndex({
                                                 setQuickAddGeneric(!quickAddGeneric);
                                                 setQuickError(null);
                                             }}
-                                            className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                                            className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
                                         >
                                             <Plus className="w-3 h-3" />
                                             {quickAddGeneric ? 'Cancel' : 'Add New'}
@@ -729,7 +815,7 @@ export default function InventoryIndex({
                                                 type="button"
                                                 disabled={quickLoading === 'generic' || !newGenericName.trim()}
                                                 onClick={handleQuickAddGeneric}
-                                                className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-lg shadow-sm whitespace-nowrap"
+                                                className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-ink text-xs font-bold rounded-lg shadow-sm whitespace-nowrap"
                                             >
                                                 {quickLoading === 'generic' ? '...' : 'Save'}
                                             </button>
@@ -765,7 +851,7 @@ export default function InventoryIndex({
                                                 setQuickAddCategory(!quickAddCategory);
                                                 setQuickError(null);
                                             }}
-                                            className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                                            className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
                                         >
                                             <Plus className="w-3 h-3" />
                                             {quickAddCategory ? 'Cancel' : 'Add New'}
@@ -791,7 +877,7 @@ export default function InventoryIndex({
                                                 type="button"
                                                 disabled={quickLoading === 'category' || !newCategoryName.trim()}
                                                 onClick={handleQuickAddCategory}
-                                                className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-lg shadow-sm whitespace-nowrap"
+                                                className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-ink text-xs font-bold rounded-lg shadow-sm whitespace-nowrap"
                                             >
                                                 {quickLoading === 'category' ? '...' : 'Save'}
                                             </button>
@@ -827,7 +913,7 @@ export default function InventoryIndex({
                                                 setQuickAddManufacturer(!quickAddManufacturer);
                                                 setQuickError(null);
                                             }}
-                                            className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                                            className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
                                         >
                                             <Plus className="w-3 h-3" />
                                             {quickAddManufacturer ? 'Cancel' : 'Add New'}
@@ -853,7 +939,7 @@ export default function InventoryIndex({
                                                 type="button"
                                                 disabled={quickLoading === 'manufacturer' || !newManufacturerName.trim()}
                                                 onClick={handleQuickAddManufacturer}
-                                                className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-lg shadow-sm whitespace-nowrap"
+                                                className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-ink text-xs font-bold rounded-lg shadow-sm whitespace-nowrap"
                                             >
                                                 {quickLoading === 'manufacturer' ? '...' : 'Save'}
                                             </button>
@@ -889,7 +975,7 @@ export default function InventoryIndex({
                                                 setQuickAddDosageForm(!quickAddDosageForm);
                                                 setQuickError(null);
                                             }}
-                                            className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                                            className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
                                         >
                                             <Plus className="w-3 h-3" />
                                             {quickAddDosageForm ? 'Cancel' : 'Add New'}
@@ -915,7 +1001,7 @@ export default function InventoryIndex({
                                                 type="button"
                                                 disabled={quickLoading === 'dosage_form' || !newDosageFormName.trim()}
                                                 onClick={handleQuickAddDosageForm}
-                                                className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-lg shadow-sm whitespace-nowrap"
+                                                className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-ink text-xs font-bold rounded-lg shadow-sm whitespace-nowrap"
                                             >
                                                 {quickLoading === 'dosage_form' ? '...' : 'Save'}
                                             </button>
@@ -992,7 +1078,7 @@ export default function InventoryIndex({
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-glow-emerald"
+                                    className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-ink shadow-glow-emerald"
                                 >
                                     Save Medicine Entity
                                 </button>
@@ -1103,7 +1189,7 @@ export default function InventoryIndex({
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-glow-cyan"
+                                    className="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-ink shadow-glow-cyan"
                                 >
                                     Register Batch
                                 </button>
@@ -1199,7 +1285,7 @@ export default function InventoryIndex({
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950"
+                                    className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-ink"
                                 >
                                     Commit Adjustment
                                 </button>

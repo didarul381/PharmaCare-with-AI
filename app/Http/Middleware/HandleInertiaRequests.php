@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\StoreSetting;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,32 +37,9 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $activeUserId = $request->session()->get('active_user_id');
-        $user = null;
-
-        try {
-            if ($activeUserId) {
-                $user = \App\Models\User::find($activeUserId);
-            }
-
-            if (!$user) {
-                $user = $request->user()
-                    ?? \App\Models\User::where('role', 'super_admin')->first()
-                    ?? \App\Models\User::where('role', 'pharmacist')->first()
-                    ?? \App\Models\User::first();
-            }
-
-            $availableUsers = \App\Models\User::where('is_active', true)->get()->map(fn($u) => [
-                'id' => $u->id,
-                'name' => $u->name,
-                'email' => $u->email,
-                'role' => $u->role,
-                'avatar' => $u->avatar,
-            ]);
-        } catch (\Throwable $e) {
-            $user = null;
-            $availableUsers = [];
-        }
+        /** @var User|null $user */
+        $user = $request->user();
+        $demoMode = (bool) config('pharmacare.demo_mode');
 
         return [
             ...parent::share($request),
@@ -73,8 +52,8 @@ class HandleInertiaRequests extends Middleware
                     'phone' => $user->phone,
                     'avatar' => $user->avatar,
                 ] : null,
-                'available_users' => $availableUsers,
-                'roles' => \App\Models\User::getRoles(),
+                'can' => $user ? $user->moduleAccessMap() : [],
+                'roles' => User::getRoles(),
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
@@ -82,11 +61,29 @@ class HandleInertiaRequests extends Middleware
                 'warning' => fn () => $request->session()->get('warning'),
                 'info' => fn () => $request->session()->get('info'),
             ],
-            'app_info' => [
-                'name' => config('app.name', 'PharmaCare AI'),
-                'version' => '2.5.0-Enterprise',
-                'currency_symbol' => '৳', // Default currency (supports ৳, $, £, €)
-            ],
+            'app_info' => fn () => $this->appInfo($demoMode),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function appInfo(bool $demoMode): array
+    {
+        $store = null;
+
+        try {
+            $store = StoreSetting::query()->first();
+        } catch (\Throwable) {
+            // Table may not exist yet during installation.
+        }
+
+        return [
+            'name' => $store?->store_name ?: config('app.name', 'PharmaCare'),
+            'tagline' => $store?->store_tagline,
+            'version' => config('pharmacare.version'),
+            'currency_symbol' => $store?->currency_symbol ?: '৳',
+            'demo_mode' => $demoMode,
         ];
     }
 }

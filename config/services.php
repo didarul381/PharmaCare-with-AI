@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+
+    // AI prescription scanning (PrescriptionParserService). Keys may also be saved from the Prescriptions screen.
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+    ],
+
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+    ],
+
 ];

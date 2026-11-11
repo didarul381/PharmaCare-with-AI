@@ -338,14 +338,11 @@ export default function ReportsIndex({
             header={
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
-                            <span>Reports & Financial Intelligence</span>
-                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
-                                Realtime Auditing
-                            </span>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>Reports</span>
                         </h1>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                            P&L statements, COGS margins, staff performance metrics, fast/slow moving items & controlled substance logs
+                        <p className="text-sm text-slate-400 mt-1">
+                            Sales, profit, stock value, staff performance, controlled drugs and customer dues.
                         </p>
                     </div>
 
@@ -359,7 +356,7 @@ export default function ReportsIndex({
                             >
                                 <option value="p_and_l">P&L Summary (CSV)</option>
                                 <option value="sales">Sales Transactions (CSV)</option>
-                                <option value="inventory">Inventory Asset Valuation (CSV)</option>
+                                <option value="inventory">Stock Value (CSV)</option>
                                 <option value="controlled_substances">DGDA Controlled Log (CSV)</option>
                                 <option value="customer_dues">Customer Receivables (CSV)</option>
                             </select>
@@ -383,7 +380,7 @@ export default function ReportsIndex({
                 </div>
             }
         >
-            <Head title="Reports & Financial Intelligence" />
+            <Head title="Reports" />
 
             {/* Date Range Filter Bar */}
             <div className="glass-panel rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -395,7 +392,7 @@ export default function ReportsIndex({
                             className={cn(
                                 "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition shrink-0",
                                 selectedPreset === p.key
-                                    ? "bg-emerald-500 text-slate-950 font-bold shadow-glow-emerald"
+                                    ? "bg-emerald-500 text-ink font-bold shadow-glow-emerald"
                                     : "bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800"
                             )}
                         >
@@ -422,7 +419,7 @@ export default function ReportsIndex({
                         />
                         <button
                             type="submit"
-                            className="px-3 py-1 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition"
+                            className="px-3 py-1 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-ink font-bold text-xs transition"
                         >
                             Apply
                         </button>
@@ -442,7 +439,7 @@ export default function ReportsIndex({
                     )}
                 >
                     <TrendingUp className="w-4 h-4" />
-                    <span>Executive P&L Analytics</span>
+                    <span>Profit & Loss</span>
                 </button>
 
                 <button
@@ -455,7 +452,7 @@ export default function ReportsIndex({
                     )}
                 >
                     <CreditCard className="w-4 h-4" />
-                    <span>Sales & Staff Performance</span>
+                    <span>Sales & Staff</span>
                 </button>
 
                 <button
@@ -468,7 +465,7 @@ export default function ReportsIndex({
                     )}
                 >
                     <PackageCheck className="w-4 h-4" />
-                    <span>Inventory Asset Valuation</span>
+                    <span>Stock Value</span>
                 </button>
 
                 <button
@@ -481,7 +478,7 @@ export default function ReportsIndex({
                     )}
                 >
                     <ShieldAlert className="w-4 h-4 text-rose-400" />
-                    <span>DGDA Controlled Narcotics Log</span>
+                    <span>Controlled Drugs</span>
                 </button>
 
                 <button
@@ -494,7 +491,7 @@ export default function ReportsIndex({
                     )}
                 >
                     <Users className="w-4 h-4 text-amber-400" />
-                    <span>Receivables & Customer Credit</span>
+                    <span>Customer Dues</span>
                 </button>
             </div>
 
@@ -516,7 +513,7 @@ export default function ReportsIndex({
                                 <div className="mt-2 flex items-baseline gap-2">
                                     <span className="text-2xl font-black text-white">{formatCurrency(metrics.total_invoiced)}</span>
                                 </div>
-                                <div className="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
+                                <div className="mt-2 text-xs text-slate-400 flex items-center justify-between">
                                     <span>{metrics.total_sales_count} Transactions</span>
                                     <span className="text-emerald-400 font-bold">Collected: {formatCurrency(metrics.total_collected)}</span>
                                 </div>
@@ -533,7 +530,7 @@ export default function ReportsIndex({
                                 <div className="mt-2 flex items-baseline gap-2">
                                     <span className="text-2xl font-black text-amber-300">{formatCurrency(metrics.cogs)}</span>
                                 </div>
-                                <div className="mt-2 text-[11px] text-slate-400">
+                                <div className="mt-2 text-xs text-slate-400">
                                     Purchase cost of all dispensed stock
                                 </div>
                             </div>
@@ -552,7 +549,7 @@ export default function ReportsIndex({
                                         {metrics.profit_margin}% Margin
                                     </span>
                                 </div>
-                                <div className="mt-2 text-[11px] text-slate-400">
+                                <div className="mt-2 text-xs text-slate-400">
                                     Net Revenue - COGS
                                 </div>
                             </div>
@@ -569,7 +566,7 @@ export default function ReportsIndex({
                                     <span className="text-xl font-black text-rose-300">{formatCurrency(metrics.total_dues)}</span>
                                     <span className="text-xs text-slate-400">Due</span>
                                 </div>
-                                <div className="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
+                                <div className="mt-2 text-xs text-slate-400 flex items-center justify-between">
                                     <span>Discounts: {formatCurrency(metrics.total_discount)}</span>
                                     <span>VAT: {formatCurrency(metrics.total_tax)}</span>
                                 </div>
@@ -598,7 +595,7 @@ export default function ReportsIndex({
                                                         <div className="space-x-2">
                                                             <span className="text-slate-400 font-mono">{pm.count} txns</span>
                                                             <span className="font-bold text-white font-mono">{formatCurrency(pm.total)}</span>
-                                                            <span className="text-[10px] text-cyan-400 font-bold">({pct}%)</span>
+                                                            <span className="text-[11px] text-cyan-400 font-bold">({pct}%)</span>
                                                         </div>
                                                     </div>
                                                     <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
@@ -615,11 +612,11 @@ export default function ReportsIndex({
 
                                 <div className="mt-6 pt-4 border-t border-slate-800/80 grid grid-cols-2 gap-3 text-xs">
                                     <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
-                                        <span className="text-slate-400 block text-[10px]">Sales Returns / Refunds</span>
+                                        <span className="text-slate-400 block text-[11px]">Sales Returns / Refunds</span>
                                         <span className="font-bold text-rose-400 text-sm">{metrics.total_returns_count} ({formatCurrency(metrics.total_returns_amount)})</span>
                                     </div>
                                     <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
-                                        <span className="text-slate-400 block text-[10px]">Total Tax (Govt VAT)</span>
+                                        <span className="text-slate-400 block text-[11px]">Total Tax (Govt VAT)</span>
                                         <span className="font-bold text-emerald-400 text-sm">{formatCurrency(metrics.total_tax)}</span>
                                     </div>
                                 </div>
@@ -635,7 +632,7 @@ export default function ReportsIndex({
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-xs">
                                         <thead>
-                                            <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[10px]">
+                                            <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[11px]">
                                                 <th className="py-2 px-2">#</th>
                                                 <th className="py-2 px-3">Medicine & Category</th>
                                                 <th className="py-2 px-3 text-center">Units Sold</th>
@@ -649,7 +646,7 @@ export default function ReportsIndex({
                                                     <td className="py-2.5 px-2 font-mono text-slate-500">{idx + 1}</td>
                                                     <td className="py-2.5 px-3">
                                                         <div className="font-bold text-white">{med.name}</div>
-                                                        <div className="text-[10px] text-slate-400">{med.generic} • {med.category}</div>
+                                                        <div className="text-[11px] text-slate-400">{med.generic} • {med.category}</div>
                                                     </td>
                                                     <td className="py-2.5 px-3 text-center font-mono font-bold text-cyan-300">
                                                         {med.units_sold}
@@ -697,7 +694,7 @@ export default function ReportsIndex({
                                     <div key={staff.id} className="p-4 bg-slate-900/70 border border-slate-800 rounded-xl space-y-2">
                                         <div className="flex items-center justify-between">
                                             <span className="font-bold text-white text-sm">{staff.name}</span>
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300 uppercase">
+                                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300 uppercase">
                                                 {staff.role.replace('_', ' ')}
                                             </span>
                                         </div>
@@ -724,7 +721,7 @@ export default function ReportsIndex({
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-xs">
                                     <thead>
-                                        <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[10px]">
+                                        <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[11px]">
                                             <th className="py-2 px-3">Date</th>
                                             <th className="py-2 px-3 text-center">Invoices Count</th>
                                             <th className="py-2 px-3 text-right">Invoiced Revenue</th>
@@ -769,7 +766,7 @@ export default function ReportsIndex({
                                 <span className="text-2xl font-black text-amber-400 mt-1 block">
                                     {formatCurrency(inventory_valuation.valuation_cost)}
                                 </span>
-                                <span className="text-[11px] text-slate-400 mt-1 block">
+                                <span className="text-xs text-slate-400 mt-1 block">
                                     {inventory_valuation.total_units_in_stock.toLocaleString()} units across {inventory_valuation.total_skus} SKUs
                                 </span>
                             </div>
@@ -779,7 +776,7 @@ export default function ReportsIndex({
                                 <span className="text-2xl font-black text-emerald-400 mt-1 block">
                                     {formatCurrency(inventory_valuation.valuation_retail)}
                                 </span>
-                                <span className="text-[11px] text-slate-400 mt-1 block">
+                                <span className="text-xs text-slate-400 mt-1 block">
                                     Unrealized margin: +{formatCurrency(inventory_valuation.unrealized_margin)}
                                 </span>
                             </div>
@@ -789,7 +786,7 @@ export default function ReportsIndex({
                                 <span className="text-2xl font-black text-rose-400 mt-1 block">
                                     {formatCurrency(inventory_valuation.expiry_bins.expired_valuation)}
                                 </span>
-                                <span className="text-[11px] text-rose-300 mt-1 block">
+                                <span className="text-xs text-rose-300 mt-1 block">
                                     {inventory_valuation.expiry_bins.expired_count} batches ({inventory_valuation.expiry_bins.expired_units} units)
                                 </span>
                             </div>
@@ -799,7 +796,7 @@ export default function ReportsIndex({
                                 <span className="text-2xl font-black text-white mt-1 block">
                                     {inventory_valuation.low_stock_count} SKUs
                                 </span>
-                                <span className="text-[11px] text-slate-400 mt-1 block">
+                                <span className="text-xs text-slate-400 mt-1 block">
                                     Under minimum safety threshold
                                 </span>
                             </div>
@@ -818,7 +815,7 @@ export default function ReportsIndex({
                                     <div className="text-xl font-black text-white">
                                         {inventory_valuation.expiry_bins.expiring_30} Batches
                                     </div>
-                                    <div className="text-[11px] text-slate-400">
+                                    <div className="text-xs text-slate-400">
                                         {inventory_valuation.expiry_bins.expiring_30_units} Units at urgent expiry risk
                                     </div>
                                 </div>
@@ -828,7 +825,7 @@ export default function ReportsIndex({
                                     <div className="text-xl font-black text-white">
                                         {inventory_valuation.expiry_bins.expiring_60} Batches
                                     </div>
-                                    <div className="text-[11px] text-slate-400">
+                                    <div className="text-xs text-slate-400">
                                         FEFO priority clearance recommended
                                     </div>
                                 </div>
@@ -838,7 +835,7 @@ export default function ReportsIndex({
                                     <div className="text-xl font-black text-white">
                                         {inventory_valuation.expiry_bins.expiring_90} Batches
                                     </div>
-                                    <div className="text-[11px] text-slate-400">
+                                    <div className="text-xs text-slate-400">
                                         Standard rotation window
                                     </div>
                                 </div>
@@ -848,7 +845,7 @@ export default function ReportsIndex({
                                     <div className="text-xl font-black text-white">
                                         {inventory_valuation.expiry_bins.safe_count} Batches
                                     </div>
-                                    <div className="text-[11px] text-slate-400">
+                                    <div className="text-xs text-slate-400">
                                         Healthy vault inventory
                                     </div>
                                 </div>
@@ -878,7 +875,7 @@ export default function ReportsIndex({
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs">
                                 <thead>
-                                    <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[10px]">
+                                    <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[11px]">
                                         <th className="py-2.5 px-3">Date & Time</th>
                                         <th className="py-2.5 px-3">Invoice #</th>
                                         <th className="py-2.5 px-3">Controlled Medicine</th>
@@ -896,7 +893,7 @@ export default function ReportsIndex({
                                             <td className="py-2.5 px-3 font-mono font-bold text-white">{item.invoice_number}</td>
                                             <td className="py-2.5 px-3">
                                                 <div className="font-bold text-rose-300">{item.medicine_name}</div>
-                                                <div className="text-[10px] text-slate-400">{item.generic_name}</div>
+                                                <div className="text-[11px] text-slate-400">{item.generic_name}</div>
                                             </td>
                                             <td className="py-2.5 px-3 font-mono text-slate-300">{item.batch_number}</td>
                                             <td className="py-2.5 px-3 text-center font-mono font-bold text-white">
@@ -904,7 +901,7 @@ export default function ReportsIndex({
                                             </td>
                                             <td className="py-2.5 px-3">
                                                 <div className="font-bold text-white">{item.patient_name}</div>
-                                                <div className="text-[10px] text-slate-400">{item.patient_phone}</div>
+                                                <div className="text-[11px] text-slate-400">{item.patient_phone}</div>
                                             </td>
                                             <td className="py-2.5 px-3 text-emerald-400 font-medium">
                                                 {item.doctor_name}
@@ -955,7 +952,7 @@ export default function ReportsIndex({
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-xs">
                                     <thead>
-                                        <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[10px]">
+                                        <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[11px]">
                                             <th className="py-2 px-3">#</th>
                                             <th className="py-2 px-3">Customer Name</th>
                                             <th className="py-2 px-3">Phone Number</th>

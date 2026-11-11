@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout, { Avatar } from '@/Layouts/AuthenticatedLayout';
 import {
     User as UserIcon,
     Mail,
@@ -73,11 +73,11 @@ export default function ProfileEdit({ user, roles, recentLogs }: Props) {
             header={
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
-                            <span>Staff Profile & Security</span>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>My Profile</span>
                         </h1>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                            Manage institutional staff profile, contact coordinates, and secure access passwords
+                        <p className="text-sm text-slate-400 mt-1">
+                            Your name, contact details and password.
                         </p>
                     </div>
 
@@ -91,7 +91,7 @@ export default function ProfileEdit({ user, roles, recentLogs }: Props) {
                 </div>
             }
         >
-            <Head title="Staff Profile & Security" />
+            <Head title="My Profile" />
 
             <div className="max-w-5xl space-y-6">
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -99,11 +99,7 @@ export default function ProfileEdit({ user, roles, recentLogs }: Props) {
                     <div className="lg:col-span-4 space-y-4">
                         <div className="glass-panel p-6 rounded-3xl border border-slate-800/80 text-center relative">
                             <div className="relative inline-block mx-auto mb-4">
-                                <img
-                                    src={form.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
-                                    alt={user.name}
-                                    className="w-24 h-24 rounded-full object-cover border-2 border-emerald-500/40 shadow-glow-emerald mx-auto"
-                                />
+                                <Avatar name={user.name} src={form.avatar} className="w-24 h-24 mx-auto text-2xl border-2 border-emerald-500/40 shadow-glow-emerald" />
                                 <div className="absolute bottom-0 right-0 p-1.5 bg-slate-900 border border-slate-700 rounded-full text-emerald-400">
                                     <Camera className="w-3.5 h-3.5" />
                                 </div>
@@ -131,13 +127,13 @@ export default function ProfileEdit({ user, roles, recentLogs }: Props) {
                             </h3>
                             <div className="space-y-2">
                                 {recentLogs.length === 0 ? (
-                                    <p className="text-[11px] text-slate-500 italic">No recent logged actions.</p>
+                                    <p className="text-xs text-slate-500 italic">No recent logged actions.</p>
                                 ) : (
                                     recentLogs.map((log) => (
-                                        <div key={log.id} className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/60 text-[11px]">
+                                        <div key={log.id} className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/60 text-xs">
                                             <div className="flex items-center justify-between text-slate-300 font-medium">
-                                                <span className="font-mono text-cyan-400 text-[10px]">{log.action}</span>
-                                                <span className="text-[10px] text-slate-500">{formatDate(log.created_at)}</span>
+                                                <span className="font-mono text-cyan-400 text-[11px]">{log.action}</span>
+                                                <span className="text-[11px] text-slate-500">{formatDate(log.created_at)}</span>
                                             </div>
                                         </div>
                                     ))
@@ -167,7 +163,7 @@ export default function ProfileEdit({ user, roles, recentLogs }: Props) {
                                         onChange={(e) => setForm({ ...form, name: e.target.value })}
                                         className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-emerald-500"
                                     />
-                                    {errors?.name && <p className="text-[10px] text-rose-400 mt-1">{errors.name}</p>}
+                                    {errors?.name && <p className="text-[11px] text-rose-400 mt-1">{errors.name}</p>}
                                 </div>
 
                                 <div>
@@ -181,7 +177,7 @@ export default function ProfileEdit({ user, roles, recentLogs }: Props) {
                                         onChange={(e) => setForm({ ...form, email: e.target.value })}
                                         className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-emerald-500"
                                     />
-                                    {errors?.email && <p className="text-[10px] text-rose-400 mt-1">{errors.email}</p>}
+                                    {errors?.email && <p className="text-[11px] text-rose-400 mt-1">{errors.email}</p>}
                                 </div>
 
                                 <div>
@@ -234,7 +230,7 @@ export default function ProfileEdit({ user, roles, recentLogs }: Props) {
                                         onChange={(e) => setForm({ ...form, current_password: e.target.value })}
                                         className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-cyan-500"
                                     />
-                                    {errors?.current_password && <p className="text-[10px] text-rose-400 mt-1">{errors.current_password}</p>}
+                                    {errors?.current_password && <p className="text-[11px] text-rose-400 mt-1">{errors.current_password}</p>}
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -249,7 +245,7 @@ export default function ProfileEdit({ user, roles, recentLogs }: Props) {
                                             onChange={(e) => setForm({ ...form, new_password: e.target.value })}
                                             className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-cyan-500"
                                         />
-                                        {errors?.new_password && <p className="text-[10px] text-rose-400 mt-1">{errors.new_password}</p>}
+                                        {errors?.new_password && <p className="text-[11px] text-rose-400 mt-1">{errors.new_password}</p>}
                                     </div>
 
                                     <div>
@@ -273,7 +269,7 @@ export default function ProfileEdit({ user, roles, recentLogs }: Props) {
                             <button
                                 type="submit"
                                 disabled={saving}
-                                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs shadow-glow-emerald flex items-center gap-2 transition disabled:opacity-50"
+                                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-ink font-bold text-xs shadow-glow-emerald flex items-center gap-2 transition disabled:opacity-50"
                             >
                                 <Save className="w-4 h-4" />
                                 <span>{saving ? 'Saving Changes...' : 'Save Profile & Credentials'}</span>

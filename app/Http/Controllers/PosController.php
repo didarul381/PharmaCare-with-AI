@@ -142,7 +142,7 @@ class PosController extends Controller
         ]);
 
         try {
-            $cashier = $request->user() ?? \App\Models\User::first();
+            $cashier = $request->user();
             $sale = $this->posService->processCheckout(
                 $validated['cart'],
                 $validated['payment'],

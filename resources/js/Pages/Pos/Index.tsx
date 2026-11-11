@@ -33,6 +33,7 @@ import {
 import { Medicine, Customer, Category, Sale } from '@/types';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
+import { confirmDialog, toast } from '@/lib/notify';
 
 interface PosMedicine {
     id: number;
@@ -92,7 +93,7 @@ interface Props {
 }
 
 export default function PosIndex({ medicines, customers, categories, store_settings }: Props) {
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState(() => new URLSearchParams(window.location.search).get('search') ?? '');
     const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [cart, setCart] = useState<CartItem[]>([]);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -103,7 +104,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
     const [paidAmount, setPaidAmount] = useState<string>('');
     const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('fixed');
     const [discountValue, setDiscountValue] = useState<number>(0);
-    const [taxPercentage, setTaxPercentage] = useState<number>(Number(store_settings?.default_tax_rate) || 5.00);
+    const [taxPercentage, setTaxPercentage] = useState<number>(store_settings?.default_tax_rate != null ? Number(store_settings.default_tax_rate) : 5.0);
     const [showDiscountDrawer, setShowDiscountDrawer] = useState<boolean>(false);
     const [showTaxDrawer, setShowTaxDrawer] = useState<boolean>(false);
     const [notes, setNotes] = useState('');
@@ -234,7 +235,12 @@ export default function PosIndex({ medicines, customers, categories, store_setti
 
     const addToCart = (med: PosMedicine) => {
         if (med.total_stock <= 0) {
-            alert(`"${med.name}" is currently out of stock!`);
+            toast.warning(`${med.name} is out of stock.`);
+            return;
+        }
+        const inCart = cart.find((item) => item.medicine.id === med.id);
+        if (inCart && inCart.quantity + 1 > med.total_stock) {
+            toast.warning(`Only ${med.total_stock} ${med.unit_name || 'units'} of ${med.name} in stock.`);
             return;
         }
 
@@ -243,11 +249,8 @@ export default function PosIndex({ medicines, customers, categories, store_setti
             if (existingIndex > -1) {
                 const updated = [...prev];
                 const newQty = updated[existingIndex].quantity + 1;
-                if (newQty > med.total_stock) {
-                    alert(`Cannot add more than available stock (${med.total_stock} units).`);
-                    return prev;
-                }
-                updated[existingIndex].quantity = newQty;
+                if (newQty > med.total_stock) return prev;
+                updated[existingIndex] = { ...updated[existingIndex], quantity: newQty };
                 return updated;
             } else {
                 return [...prev, {
@@ -262,15 +265,17 @@ export default function PosIndex({ medicines, customers, categories, store_setti
     };
 
     const updateQuantity = (medicineId: number, delta: number) => {
+        const target = cart.find((item) => item.medicine.id === medicineId);
+        if (target && delta > 0 && target.quantity + delta > target.medicine.total_stock) {
+            toast.warning(`Only ${target.medicine.total_stock} in stock.`);
+            return;
+        }
         setCart(prev => {
             return prev.map(item => {
                 if (item.medicine.id === medicineId) {
                     const newQty = item.quantity + delta;
                     if (newQty <= 0) return null;
-                    if (newQty > item.medicine.total_stock) {
-                        alert(`Maximum available stock is ${item.medicine.total_stock} units.`);
-                        return item;
-                    }
+                    if (newQty > item.medicine.total_stock) return item;
                     return { ...item, quantity: newQty };
                 }
                 return item;
@@ -315,9 +320,13 @@ export default function PosIndex({ medicines, customers, categories, store_setti
         setHoldNoteInput('');
     };
 
-    const resumeHeldOrder = (order: HeldOrder) => {
+    const resumeHeldOrder = async (order: HeldOrder) => {
         if (cart.length > 0) {
-            const confirmSwap = confirm("You currently have items in the active cart. Do you want to replace them with this held order?");
+            const confirmSwap = await confirmDialog({
+                title: 'Replace the current cart?',
+                message: 'The items in your cart will be replaced by this held order.',
+                confirmLabel: 'Replace cart',
+            });
             if (!confirmSwap) return;
         }
 
@@ -389,10 +398,10 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                 setShowReceiptModal(true);
                 clearCart();
             } else {
-                alert('Checkout failed: ' + result.message);
+                toast.error(result.message || 'Please check the cart and try again.', 'Checkout failed');
             }
         } catch (err: any) {
-            alert('An unexpected error occurred during checkout: ' + err.message);
+            toast.error(err.message, 'Checkout failed');
         } finally {
             setIsProcessing(false);
         }
@@ -414,14 +423,11 @@ export default function PosIndex({ medicines, customers, categories, store_setti
             header={
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
-                            <span>POS Dispensing Engine</span>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">
-                                FEFO FIFO Active
-                            </span>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>Point of Sale</span>
                         </h1>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                            High-velocity dispensing counter with automatic batch allocation & DDI safety shield
+                        <p className="text-sm text-slate-400 mt-1">
+                            Search or scan medicines, then take payment. The batch closest to expiry is used automatically.
                         </p>
                     </div>
 
@@ -449,7 +455,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                 className={cn(
                                     "px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition animate-pulse",
                                     safetyWarning.max_severity === 'fatal' || safetyWarning.max_severity === 'severe'
-                                        ? "bg-rose-500 text-white shadow-glow-rose"
+                                        ? "bg-rose-500 text-paper shadow-glow-rose"
                                         : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
                                 )}
                             >
@@ -465,7 +471,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                 </div>
             }
         >
-            <Head title="POS & Dispensing Terminal" />
+            <Head title="Point of Sale" />
 
             {/* Mobile Tab Switcher */}
             <div className="flex lg:hidden items-center bg-slate-900 border border-slate-800 rounded-xl p-1 mb-4">
@@ -474,7 +480,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                     onClick={() => setMobileTab('catalog')}
                     className={cn(
                         "flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5",
-                        mobileTab === 'catalog' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                        mobileTab === 'catalog' ? "bg-emerald-500 text-ink shadow" : "text-slate-400 hover:text-white"
                     )}
                 >
                     <Search className="w-3.5 h-3.5" />
@@ -485,7 +491,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                     onClick={() => setMobileTab('cart')}
                     className={cn(
                         "flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 relative",
-                        mobileTab === 'cart' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                        mobileTab === 'cart' ? "bg-emerald-500 text-ink shadow" : "text-slate-400 hover:text-white"
                     )}
                 >
                     <ShoppingCart className="w-3.5 h-3.5" />
@@ -542,12 +548,12 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                 <div>
                                     {/* Top badges: FEFO Earliest Batch Pill */}
                                     <div className="flex items-center justify-between gap-1 mb-2">
-                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                                             <Zap className="w-2.5 h-2.5" />
                                             FEFO {med.earliest_batch?.batch_number || 'AUTO'}
                                         </span>
                                         <span className={cn(
-                                            "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                                            "text-[11px] font-bold px-1.5 py-0.5 rounded",
                                             med.earliest_batch && med.earliest_batch.days_remaining <= 30
                                                 ? "bg-rose-500/20 text-rose-300"
                                                 : "bg-slate-800 text-slate-400"
@@ -559,21 +565,21 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                     <h3 className="font-bold text-white text-sm leading-snug group-hover:text-emerald-300 transition">
                                         {med.name}
                                     </h3>
-                                    <p className="text-[11px] text-slate-400 line-clamp-1">
+                                    <p className="text-xs text-slate-400 line-clamp-1">
                                         {med.generic_name} ({med.strength || 'Standard'})
                                     </p>
                                 </div>
 
                                 <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between">
                                     <div>
-                                        <span className="text-[10px] text-slate-500 block">Retail Price</span>
+                                        <span className="text-[11px] text-slate-500 block">Retail Price</span>
                                         <span className="text-base font-extrabold text-emerald-400">
                                             {formatCurrency(med.selling_price)}
                                         </span>
                                     </div>
 
                                     <div className="text-right">
-                                        <span className="text-[10px] text-slate-500 block">In Vault</span>
+                                        <span className="text-[11px] text-slate-500 block">In Vault</span>
                                         <span className={cn(
                                             "text-xs font-bold",
                                             med.total_stock <= 10 ? "text-amber-400" : "text-white"
@@ -590,7 +596,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                     {cart.length > 0 && (
                         <div
                             onClick={() => setMobileTab('cart')}
-                            className="lg:hidden mt-3 p-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold flex items-center justify-between shadow-glow-emerald cursor-pointer"
+                            className="lg:hidden mt-3 p-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-ink font-bold flex items-center justify-between shadow-glow-emerald cursor-pointer"
                         >
                             <div className="flex items-center gap-2">
                                 <ShoppingCart className="w-4 h-4" />
@@ -598,14 +604,14 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                             </div>
                             <div className="flex items-center gap-1 text-xs">
                                 <span>{formatCurrency(grandTotal)}</span>
-                                <span className="text-[10px] bg-slate-950 text-white px-2 py-0.5 rounded-lg ml-1.5">Checkout &rarr;</span>
+                                <span className="text-[11px] bg-slate-950 text-white px-2 py-0.5 rounded-lg ml-1.5">Checkout &rarr;</span>
                             </div>
                         </div>
                     )}
                 </div>
 
                 {/* Right Area: Dynamic POS Order Cart (4 cols) */}
-                <div className={cn("lg:col-span-5 xl:col-span-4 glass-panel rounded-2xl border border-slate-800/80 flex flex-col h-full overflow-hidden shadow-2xl bg-gradient-to-b from-[#0d1322] to-[#070b13]", mobileTab !== 'cart' && "hidden lg:flex")}>
+                <div className={cn("lg:col-span-5 xl:col-span-4 glass-panel rounded-2xl border border-slate-800/80 flex flex-col h-full overflow-hidden shadow-2xl bg-gradient-to-b from-panel to-deep", mobileTab !== 'cart' && "hidden lg:flex")}>
                     {/* Cart Header with Hold & Clear buttons */}
                     <div className="p-4 border-b border-slate-800 flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -662,7 +668,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                             <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
                                 <ShoppingCart className="w-12 h-12 stroke-[1.2] text-slate-700 mb-2" />
                                 <p className="text-xs font-semibold text-slate-400">POS Cart is Empty</p>
-                                <p className="text-[11px] text-slate-600 mt-0.5">Click any medicine card or scan barcode to add items</p>
+                                <p className="text-xs text-slate-600 mt-0.5">Click any medicine card or scan barcode to add items</p>
                                 {heldOrders.length > 0 && (
                                     <button
                                         onClick={() => setShowHeldModal(true)}
@@ -680,7 +686,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                         <span className="font-bold text-white text-xs block truncate">
                                             {item.medicine.name}
                                         </span>
-                                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                                        <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
                                             <span>{formatCurrency(item.unit_price)} / {item.unit_name}</span>
                                             <span className="text-emerald-400 font-semibold">
                                                 FEFO: {item.medicine.earliest_batch?.batch_number || 'B1'}
@@ -712,7 +718,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                         </span>
                                         <button
                                             onClick={() => removeFromCart(item.medicine.id)}
-                                            className="text-[10px] text-slate-500 hover:text-rose-400"
+                                            className="text-[11px] text-slate-500 hover:text-rose-400"
                                         >
                                             Remove
                                         </button>
@@ -736,11 +742,11 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                         if (showTaxDrawer) setShowTaxDrawer(false);
                                     }}
                                     className={cn(
-                                        "px-2 py-1 rounded-lg text-[10px] font-bold border transition flex items-center gap-1",
+                                        "px-2 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1",
                                         discountValue > 0
                                             ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                                             : showDiscountDrawer
-                                            ? "bg-cyan-500 text-slate-950 border-cyan-400"
+                                            ? "bg-cyan-500 text-ink border-cyan-400"
                                             : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
                                     )}
                                 >
@@ -755,11 +761,11 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                         if (showDiscountDrawer) setShowDiscountDrawer(false);
                                     }}
                                     className={cn(
-                                        "px-2 py-1 rounded-lg text-[10px] font-bold border transition flex items-center gap-1",
+                                        "px-2 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1",
                                         taxPercentage !== 5.0
                                             ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"
                                             : showTaxDrawer
-                                            ? "bg-cyan-500 text-slate-950 border-cyan-400"
+                                            ? "bg-cyan-500 text-ink border-cyan-400"
                                             : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
                                     )}
                                 >
@@ -773,14 +779,14 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                         {showDiscountDrawer && (
                             <div className="p-3 rounded-xl bg-slate-900 border border-cyan-500/30 space-y-2.5 animate-in fade-in slide-in-from-top-1">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-[11px] font-bold text-slate-300">Discount Mode:</span>
+                                    <span className="text-xs font-bold text-slate-300">Discount Mode:</span>
                                     <div className="flex bg-slate-950 rounded-lg p-0.5 border border-slate-800">
                                         <button
                                             type="button"
                                             onClick={() => setDiscountType('percentage')}
                                             className={cn(
-                                                "px-2 py-0.5 rounded text-[10px] font-bold transition",
-                                                discountType === 'percentage' ? "bg-cyan-500 text-slate-950" : "text-slate-400 hover:text-white"
+                                                "px-2 py-0.5 rounded text-[11px] font-bold transition",
+                                                discountType === 'percentage' ? "bg-cyan-500 text-ink" : "text-slate-400 hover:text-white"
                                             )}
                                         >
                                             % Percent
@@ -789,8 +795,8 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                             type="button"
                                             onClick={() => setDiscountType('fixed')}
                                             className={cn(
-                                                "px-2 py-0.5 rounded text-[10px] font-bold transition",
-                                                discountType === 'fixed' ? "bg-cyan-500 text-slate-950" : "text-slate-400 hover:text-white"
+                                                "px-2 py-0.5 rounded text-[11px] font-bold transition",
+                                                discountType === 'fixed' ? "bg-cyan-500 text-ink" : "text-slate-400 hover:text-white"
                                             )}
                                         >
                                             ৳ Flat (BDT)
@@ -807,9 +813,9 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                                 type="button"
                                                 onClick={() => setDiscountValue(val)}
                                                 className={cn(
-                                                    "px-2.5 py-1 rounded-md text-[10px] font-bold shrink-0 transition",
+                                                    "px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 transition",
                                                     discountValue === val
-                                                        ? "bg-emerald-500 text-slate-950 font-black shadow-sm"
+                                                        ? "bg-emerald-500 text-ink font-black shadow-sm"
                                                         : "bg-slate-800 text-slate-300 hover:bg-slate-700"
                                                 )}
                                             >
@@ -823,9 +829,9 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                                 type="button"
                                                 onClick={() => setDiscountValue(val)}
                                                 className={cn(
-                                                    "px-2.5 py-1 rounded-md text-[10px] font-bold shrink-0 transition",
+                                                    "px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 transition",
                                                     discountValue === val
-                                                        ? "bg-emerald-500 text-slate-950 font-black shadow-sm"
+                                                        ? "bg-emerald-500 text-ink font-black shadow-sm"
                                                         : "bg-slate-800 text-slate-300 hover:bg-slate-700"
                                                 )}
                                             >
@@ -837,7 +843,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
 
                                 {/* Custom Input */}
                                 <div className="flex items-center gap-2 pt-1">
-                                    <span className="text-[10px] text-slate-400">Custom Value:</span>
+                                    <span className="text-[11px] text-slate-400">Custom Value:</span>
                                     <input
                                         type="number"
                                         min="0"
@@ -851,7 +857,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                         <button
                                             type="button"
                                             onClick={() => setDiscountValue(0)}
-                                            className="text-[10px] font-bold text-rose-400 hover:text-rose-300 px-1.5 py-1 bg-rose-500/10 rounded-md border border-rose-500/20"
+                                            className="text-[11px] font-bold text-rose-400 hover:text-rose-300 px-1.5 py-1 bg-rose-500/10 rounded-md border border-rose-500/20"
                                         >
                                             Reset
                                         </button>
@@ -864,8 +870,8 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                         {showTaxDrawer && (
                             <div className="p-3 rounded-xl bg-slate-900 border border-cyan-500/30 space-y-2.5 animate-in fade-in slide-in-from-top-1">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-[11px] font-bold text-slate-300">Govt VAT / Tax Setting:</span>
-                                    <span className="text-[10px] text-cyan-400 font-bold">Active: {taxPercentage}%</span>
+                                    <span className="text-xs font-bold text-slate-300">Govt VAT / Tax Setting:</span>
+                                    <span className="text-[11px] text-cyan-400 font-bold">Active: {taxPercentage}%</span>
                                 </div>
 
                                 {/* Quick VAT Preset Pills */}
@@ -882,9 +888,9 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                             type="button"
                                             onClick={() => setTaxPercentage(preset.val)}
                                             className={cn(
-                                                "py-1.5 rounded-lg text-[10px] font-bold transition text-center",
+                                                "py-1.5 rounded-lg text-[11px] font-bold transition text-center",
                                                 taxPercentage === preset.val
-                                                    ? "bg-cyan-500 text-slate-950 font-black shadow-sm"
+                                                    ? "bg-cyan-500 text-ink font-black shadow-sm"
                                                     : "bg-slate-800 text-slate-300 hover:bg-slate-700"
                                             )}
                                         >
@@ -895,7 +901,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
 
                                 {/* Custom VAT Input */}
                                 <div className="flex items-center gap-2 pt-1">
-                                    <span className="text-[10px] text-slate-400">Custom Tax Rate (%):</span>
+                                    <span className="text-[11px] text-slate-400">Custom Tax Rate (%):</span>
                                     <input
                                         type="number"
                                         min="0"
@@ -927,7 +933,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                         <button
                                             type="button"
                                             onClick={() => setDiscountValue(0)}
-                                            className="text-slate-500 hover:text-rose-400 text-[10px] ml-1"
+                                            className="text-slate-500 hover:text-rose-400 text-[11px] ml-1"
                                             title="Remove discount"
                                         >
                                             ✕
@@ -938,7 +944,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                             )}
 
                             {discountValue > 0 && (
-                                <div className="flex justify-between text-[11px] text-slate-500">
+                                <div className="flex justify-between text-xs text-slate-500">
                                     <span>Taxable Subtotal</span>
                                     <span>{formatCurrency(taxableAmount)}</span>
                                 </div>
@@ -952,7 +958,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                     title="Click to change Govt VAT rate"
                                 >
                                     <span>Govt VAT / Tax ({taxPercentage}%)</span>
-                                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-cyan-400 border border-slate-700 group-hover:border-cyan-500/40">change</span>
+                                    <span className="text-[11px] px-1.5 py-0.2 rounded bg-slate-800 text-cyan-400 border border-slate-700 group-hover:border-cyan-500/40">change</span>
                                 </button>
                                 <span className="text-white font-medium">{formatCurrency(taxAmount)}</span>
                             </div>
@@ -971,9 +977,9 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                     type="button"
                                     onClick={() => setPaymentMethod(method)}
                                     className={cn(
-                                        "py-1.5 rounded-xl text-[11px] font-bold uppercase transition",
+                                        "py-1.5 rounded-xl text-xs font-bold uppercase transition",
                                         paymentMethod === method
-                                            ? "bg-emerald-500 text-slate-950 shadow"
+                                            ? "bg-emerald-500 text-ink shadow"
                                             : "bg-slate-800 text-slate-400 hover:text-white"
                                     )}
                                 >
@@ -986,7 +992,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                         {paymentMethod === 'cash' && (
                             <div className="grid grid-cols-2 gap-2 pt-1">
                                 <div>
-                                    <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">Tendered (৳)</label>
+                                    <label className="text-[11px] text-slate-400 font-semibold block mb-0.5">Tendered (৳)</label>
                                     <input
                                         type="number"
                                         step="0.01"
@@ -996,7 +1002,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">Change Due</label>
+                                    <label className="text-[11px] text-slate-400 font-semibold block mb-0.5">Change Due</label>
                                     <div className="w-full text-xs bg-slate-950/60 border border-slate-800/80 rounded-xl px-3 py-1.5 text-cyan-400 font-bold">
                                         {formatCurrency(changeAmount)}
                                     </div>
@@ -1024,10 +1030,10 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                     "flex-1 py-3 rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 shadow-glow-emerald transition-all transform active:scale-[0.98]",
                                     cart.length === 0 || isProcessing
                                         ? "bg-slate-800 text-slate-500 cursor-not-allowed"
-                                        : "bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 hover:from-emerald-400 hover:to-teal-400"
+                                        : "bg-gradient-to-r from-emerald-500 to-teal-500 text-ink hover:from-emerald-400 hover:to-teal-400"
                                 )}
                             >
-                                <CheckCircle2 className="w-4 h-4 text-slate-950" />
+                                <CheckCircle2 className="w-4 h-4 text-ink" />
                                 <span>{isProcessing ? 'Processing...' : `Validate & Dispense (${formatCurrency(grandTotal)})`}</span>
                             </button>
                         </div>
@@ -1038,7 +1044,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
             {/* Hold Order Prompt Modal */}
             {showHoldPromptModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="glass-panel-elevated rounded-3xl w-full max-w-md p-6 border border-amber-500/40 shadow-2xl relative bg-[#0d1322]">
+                    <div className="glass-panel-elevated rounded-3xl w-full max-w-md p-6 border border-amber-500/40 shadow-2xl relative bg-panel">
                         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                             <div className="flex items-center gap-2">
                                 <PauseCircle className="w-5 h-5 text-amber-400" />
@@ -1055,7 +1061,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                             </p>
 
                             <div>
-                                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                                <label className="block text-xs font-semibold text-slate-400 mb-1">
                                     Customer Label / Note (Optional)
                                 </label>
                                 <input
@@ -1081,7 +1087,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                             </button>
                             <button
                                 onClick={confirmHoldOrder}
-                                className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm"
+                                className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-ink shadow-sm"
                             >
                                 Confirm & Hold Order
                             </button>
@@ -1093,7 +1099,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
             {/* Held Orders List Modal */}
             {showHeldModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="glass-panel-elevated rounded-3xl w-full max-w-2xl p-6 border border-slate-700 shadow-2xl relative bg-[#0d1322]">
+                    <div className="glass-panel-elevated rounded-3xl w-full max-w-2xl p-6 border border-slate-700 shadow-2xl relative bg-panel">
                         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                             <div className="flex items-center gap-2">
                                 <FolderDown className="w-5 h-5 text-amber-400" />
@@ -1118,21 +1124,21 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <span className="font-mono text-xs font-bold text-amber-400">{order.id}</span>
-                                                <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                                                <span className="text-[11px] text-slate-400 flex items-center gap-1">
                                                     <Clock className="w-3 h-3" /> {order.held_at}
                                                 </span>
                                             </div>
                                             <h4 className="font-bold text-white text-xs truncate">
                                                 {order.note_label || (order.customer ? `Customer: ${order.customer.name}` : 'Walk-in Retail')}
                                             </h4>
-                                            <div className="text-[11px] text-slate-400 mt-0.5">
+                                            <div className="text-xs text-slate-400 mt-0.5">
                                                 {order.cart.map(c => `${c.medicine.name} (x${c.quantity})`).join(', ')}
                                             </div>
                                         </div>
 
                                         <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
                                             <div className="text-right">
-                                                <span className="text-[10px] text-slate-500 block">Total</span>
+                                                <span className="text-[11px] text-slate-500 block">Total</span>
                                                 <span className="text-sm font-extrabold text-emerald-400">
                                                     {formatCurrency(order.grand_total)}
                                                 </span>
@@ -1148,7 +1154,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                                 </button>
                                                 <button
                                                     onClick={() => resumeHeldOrder(order)}
-                                                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center gap-1.5 shadow-sm transition"
+                                                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-ink flex items-center gap-1.5 shadow-sm transition"
                                                 >
                                                     <PlayCircle className="w-4 h-4" />
                                                     <span>Resume Order</span>
@@ -1175,7 +1181,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
             {/* DDI Safety Warning Modal (Clinical Shield) */}
             {showSafetyModal && safetyWarning && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
-                    <div className="glass-panel-elevated rounded-3xl w-full max-w-xl p-6 border border-rose-500/50 shadow-2xl relative bg-gradient-to-b from-[#1a0f14] via-[#0f172a] to-[#070b13]">
+                    <div className="glass-panel-elevated rounded-3xl w-full max-w-xl p-6 border border-rose-500/50 shadow-2xl relative bg-gradient-to-b from-rose-950/30 via-slate-900 to-deep">
                         <div className="flex items-center gap-3 mb-4 pb-3 border-b border-rose-500/30">
                             <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/40 flex items-center justify-center shadow-glow-rose">
                                 <ShieldAlert className="w-7 h-7" />
@@ -1198,8 +1204,8 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                             {ddi.drug_a} + {ddi.drug_b}
                                         </span>
                                         <span className={cn(
-                                            "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider",
-                                            ddi.severity === 'fatal' ? "bg-red-600 text-white" : "bg-rose-500/30 text-rose-300 border border-rose-500/40"
+                                            "px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider",
+                                            ddi.severity === 'fatal' ? "bg-red-600 text-paper" : "bg-rose-500/30 text-rose-300 border border-rose-500/40"
                                         )}>
                                             {ddi.severity} Hazard
                                         </span>
@@ -1208,7 +1214,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                         {ddi.description}
                                     </p>
                                     {ddi.clinical_management && (
-                                        <div className="mt-2 text-[11px] font-semibold text-emerald-300 bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                                        <div className="mt-2 text-xs font-semibold text-emerald-300 bg-slate-900/80 p-2 rounded-xl border border-slate-800">
                                             💡 Clinical Advice: {ddi.clinical_management}
                                         </div>
                                     )}
@@ -1229,7 +1235,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                     setSafetyOverrideAcknowledged(true);
                                     setShowSafetyModal(false);
                                 }}
-                                className="px-5 py-2 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-500 text-white shadow-glow-rose transition"
+                                className="px-5 py-2 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-500 text-paper shadow-glow-rose transition"
                             >
                                 Pharmacist Override & Push
                             </button>
@@ -1241,7 +1247,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
             {/* Receipt Modal */}
             {showReceiptModal && completedSale && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-                    <div className="glass-panel-elevated rounded-3xl w-full max-w-md p-6 border border-slate-700 shadow-2xl relative bg-[#0d1322]">
+                    <div className="glass-panel-elevated rounded-3xl w-full max-w-md p-6 border border-slate-700 shadow-2xl relative bg-panel">
                         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                             <div className="flex items-center gap-2">
                                 <Receipt className="w-5 h-5 text-emerald-400" />
@@ -1255,30 +1261,30 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                         {/* Thermal Receipt Simulator */}
                         <div
                             id="pos-thermal-slip"
-                            className="my-4 p-4 rounded-2xl bg-white text-slate-950 font-mono text-xs shadow-inner space-y-2 border border-slate-200"
+                            className="stock-colors my-4 p-4 rounded-2xl bg-white text-slate-950 font-mono text-xs shadow-inner space-y-2 border border-slate-200"
                         >
                             <div className="text-center border-b border-slate-300 pb-2">
                                 <h4 className="font-extrabold text-sm uppercase tracking-wider text-slate-950">
                                     {store_settings?.store_name || 'PHARMACARE AI RX'}
                                 </h4>
                                 {store_settings?.store_tagline && (
-                                    <p className="text-[10px] text-slate-700">{store_settings.store_tagline}</p>
+                                    <p className="text-[11px] text-slate-700">{store_settings.store_tagline}</p>
                                 )}
                                 {store_settings?.address && (
-                                    <p className="text-[10px] text-slate-600 mt-0.5">{store_settings.address}</p>
+                                    <p className="text-[11px] text-slate-600 mt-0.5">{store_settings.address}</p>
                                 )}
                                 {store_settings?.phone && (
-                                    <p className="text-[10px] text-slate-600">Tel: {store_settings.phone}</p>
+                                    <p className="text-[11px] text-slate-600">Tel: {store_settings.phone}</p>
                                 )}
                                 {(store_settings?.show_license_on_receipt !== false) && (
-                                    <div className="text-[9px] text-slate-600 mt-0.5">
+                                    <div className="text-[11px] text-slate-600 mt-0.5">
                                         {store_settings?.drug_license_no && <div>{store_settings.drug_license_no}</div>}
                                         {store_settings?.vat_reg_no && <div>{store_settings.vat_reg_no}</div>}
                                     </div>
                                 )}
                             </div>
 
-                            <div className="text-[10px] space-y-0.5 border-b border-slate-300 pb-2">
+                            <div className="text-[11px] space-y-0.5 border-b border-slate-300 pb-2">
                                 <div>Invoice: <span className="font-bold">{completedSale.invoice_number}</span></div>
                                 <div>Date: {formatDate(completedSale.created_at)}</div>
                                 <div>Customer: {completedSale.customer?.name || 'Walk-in Cash'}</div>
@@ -1288,10 +1294,10 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                             {/* Items List */}
                             <div className="border-b border-slate-300 pb-2 space-y-1">
                                 {completedSale.items?.map((item: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between text-[11px]">
+                                    <div key={idx} className="flex justify-between text-xs">
                                         <div>
                                             <span className="font-bold">{item.medicine?.name}</span>
-                                            <span className="text-[9px] block text-slate-600">
+                                            <span className="text-[11px] block text-slate-600">
                                                 Qty: {item.quantity} x {formatCurrency(item.unit_price)} (FEFO: {item.batch?.batch_number})
                                             </span>
                                         </div>
@@ -1301,18 +1307,18 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                             </div>
 
                             <div className="text-right space-y-0.5 pt-1 text-xs">
-                                <div className="flex justify-between text-[11px]">
+                                <div className="flex justify-between text-xs">
                                     <span>Subtotal:</span>
                                     <span>{formatCurrency(completedSale.subtotal)}</span>
                                 </div>
                                 {Number(completedSale.discount_amount) > 0 && (
-                                    <div className="flex justify-between text-[11px] text-emerald-700 font-bold">
+                                    <div className="flex justify-between text-xs text-emerald-700 font-bold">
                                         <span>Discount ({completedSale.discount_type === 'percentage' ? `${completedSale.discount_value}%` : 'Flat'}):</span>
                                         <span>-{formatCurrency(completedSale.discount_amount)}</span>
                                     </div>
                                 )}
                                 {(store_settings?.show_tax_on_receipt !== false) && (
-                                    <div className="flex justify-between text-[11px]">
+                                    <div className="flex justify-between text-xs">
                                         <span>Govt VAT / Tax ({completedSale.tax_percentage}%):</span>
                                         <span>{formatCurrency(completedSale.tax_amount)}</span>
                                     </div>
@@ -1321,19 +1327,19 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                     <span>Grand Total:</span>
                                     <span>{formatCurrency(completedSale.grand_total)}</span>
                                 </div>
-                                <div className="flex justify-between text-[11px] text-slate-600">
+                                <div className="flex justify-between text-xs text-slate-600">
                                     <span>Paid ({completedSale.payment_method}):</span>
                                     <span>{formatCurrency(completedSale.paid_amount)}</span>
                                 </div>
                                 {Number(completedSale.change_amount) > 0 && (
-                                    <div className="flex justify-between text-[11px] text-emerald-700 font-bold">
+                                    <div className="flex justify-between text-xs text-emerald-700 font-bold">
                                         <span>Change Returned:</span>
                                         <span>{formatCurrency(completedSale.change_amount)}</span>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="text-center pt-2 text-[9px] text-slate-500 border-t border-slate-200">
+                            <div className="text-center pt-2 text-[11px] text-slate-500 border-t border-slate-200">
                                 {store_settings?.receipt_footer || 'Thank you for choosing PharmaCare AI! Quick healing.'}
                             </div>
                         </div>
@@ -1395,7 +1401,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                     `);
                                     win.document.close();
                                 }}
-                                className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center gap-1.5 shadow-glow-emerald"
+                                className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-ink flex items-center justify-center gap-1.5 shadow-glow-emerald"
                             >
                                 <Printer className="w-4 h-4" /> Print Thermal Receipt
                             </button>

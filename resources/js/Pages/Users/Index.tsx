@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout, { Avatar } from '@/Layouts/AuthenticatedLayout';
 import {
     Users,
     UserPlus,
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { User, PageProps } from '@/types';
 import { formatDate, cn } from '@/lib/utils';
+import { confirmDialog } from '@/lib/notify';
 
 interface Props {
     users: (User & { sales_count?: number; stock_adjustments_count?: number; audit_logs_count?: number })[];
@@ -123,10 +124,14 @@ export default function UsersIndex({ users, roles, metrics, filters }: Props) {
         });
     };
 
-    const handleDeactivateUser = (user: User) => {
-        if (confirm(`Are you sure you want to deactivate account '${user.name}'?\n\nThis will restrict their station access and log an audit trail.`)) {
-            router.delete(`/users/${user.id}`);
-        }
+    const handleDeactivateUser = async (user: User) => {
+        const ok = await confirmDialog({
+            title: `Deactivate ${user.name}?`,
+            message: 'They will be signed out and can no longer log in. You can reactivate the account later.',
+            confirmLabel: 'Deactivate',
+            tone: 'danger',
+        });
+        if (ok) router.delete(`/users/${user.id}`);
     };
 
     const getRoleBadge = (role: string) => {
@@ -150,20 +155,17 @@ export default function UsersIndex({ users, roles, metrics, filters }: Props) {
             header={
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
-                            <span>Staff & Role Access Control</span>
-                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
-                                Super Admin Only
-                            </span>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>Staff & Roles</span>
                         </h1>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                            Create new staff accounts, assign pharmaceutical permissions, and audit operator activity
+                        <p className="text-sm text-slate-400 mt-1">
+                            Add staff, give each person a role, and deactivate accounts.
                         </p>
                     </div>
 
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs shadow-glow-emerald flex items-center gap-2 transition self-start sm:self-auto"
+                        className="px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-ink font-bold text-xs shadow-glow-emerald flex items-center gap-2 transition self-start sm:self-auto"
                     >
                         <UserPlus className="w-4 h-4" />
                         <span>Add Staff Member</span>
@@ -171,28 +173,28 @@ export default function UsersIndex({ users, roles, metrics, filters }: Props) {
                 </div>
             }
         >
-            <Head title="Staff Directory & Role Management" />
+            <Head title="Staff & Roles" />
 
             {/* Stat Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4 sm:mb-6">
                 <div className="glass-panel p-3.5 rounded-2xl border border-slate-800/80">
-                    <span className="text-[11px] font-semibold text-slate-400 block">Total Staff</span>
+                    <span className="text-xs font-semibold text-slate-400 block">Total Staff</span>
                     <span className="text-xl font-black text-white">{metrics.total_users}</span>
                 </div>
                 <div className="glass-panel p-3.5 rounded-2xl border border-purple-500/30 bg-purple-500/5">
-                    <span className="text-[11px] font-semibold text-purple-300 block">Super Admins</span>
+                    <span className="text-xs font-semibold text-purple-300 block">Super Admins</span>
                     <span className="text-xl font-black text-purple-400">{metrics.super_admins}</span>
                 </div>
                 <div className="glass-panel p-3.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/5">
-                    <span className="text-[11px] font-semibold text-emerald-300 block">Lead Pharmacists</span>
+                    <span className="text-xs font-semibold text-emerald-300 block">Lead Pharmacists</span>
                     <span className="text-xl font-black text-emerald-400">{metrics.pharmacists}</span>
                 </div>
                 <div className="glass-panel p-3.5 rounded-2xl border border-cyan-500/30 bg-cyan-500/5">
-                    <span className="text-[11px] font-semibold text-cyan-300 block">Senior Cashiers</span>
+                    <span className="text-xs font-semibold text-cyan-300 block">Senior Cashiers</span>
                     <span className="text-xl font-black text-cyan-400">{metrics.cashiers}</span>
                 </div>
                 <div className="glass-panel p-3.5 rounded-2xl border border-amber-500/30 bg-amber-500/5">
-                    <span className="text-[11px] font-semibold text-amber-300 block">Inventory Managers</span>
+                    <span className="text-xs font-semibold text-amber-300 block">Inventory Managers</span>
                     <span className="text-xl font-black text-amber-400">{metrics.inventory_managers}</span>
                 </div>
             </div>
@@ -245,7 +247,7 @@ export default function UsersIndex({ users, roles, metrics, filters }: Props) {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                         <thead>
-                            <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase text-[10px] font-bold">
+                            <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase text-[11px] font-bold">
                                 <th className="py-3 px-4">Staff Member</th>
                                 <th className="py-3 px-4">Assigned Role</th>
                                 <th className="py-3 px-4">Contact Info</th>
@@ -259,20 +261,16 @@ export default function UsersIndex({ users, roles, metrics, filters }: Props) {
                                 <tr key={u.id} className="hover:bg-slate-800/30 transition">
                                     <td className="py-3 px-4">
                                         <div className="flex items-center gap-3">
-                                            <img
-                                                src={u.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
-                                                alt={u.name}
-                                                className="w-8 h-8 rounded-full object-cover border border-slate-700"
-                                            />
+                                            <Avatar name={u.name} src={u.avatar} className="w-8 h-8" />
                                             <div>
                                                 <span className="font-bold text-white block">{u.name}</span>
-                                                <span className="text-[11px] text-slate-400 font-mono">{u.email}</span>
+                                                <span className="text-xs text-slate-400 font-mono">{u.email}</span>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="py-3 px-4">
                                         <span className={cn(
-                                            "px-2.5 py-1 rounded-full text-[10px] font-bold border inline-flex items-center gap-1",
+                                            "px-2.5 py-1 rounded-full text-[11px] font-bold border inline-flex items-center gap-1",
                                             getRoleBadge(u.role)
                                         )}>
                                             <Shield className="w-3 h-3" />
@@ -282,12 +280,12 @@ export default function UsersIndex({ users, roles, metrics, filters }: Props) {
                                     <td className="py-3 px-4 text-slate-300">
                                         <div>{u.phone || 'No phone set'}</div>
                                     </td>
-                                    <td className="py-3 px-4 text-slate-400 text-[11px]">
+                                    <td className="py-3 px-4 text-slate-400 text-xs">
                                         <span className="text-white font-bold">{u.audit_logs_count || 0}</span> audits • <span className="text-emerald-400 font-bold">{u.sales_count || 0}</span> sales
                                     </td>
                                     <td className="py-3 px-4">
                                         <span className={cn(
-                                            "px-2 py-0.5 rounded-md text-[10px] font-bold",
+                                            "px-2 py-0.5 rounded-md text-[11px] font-bold",
                                             u.is_active !== false
                                                 ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                                                 : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
@@ -345,7 +343,7 @@ export default function UsersIndex({ users, roles, metrics, filters }: Props) {
                                     onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
                                     className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-emerald-500"
                                 />
-                                {errors?.name && <p className="text-[10px] text-rose-400 mt-1">{errors.name}</p>}
+                                {errors?.name && <p className="text-[11px] text-rose-400 mt-1">{errors.name}</p>}
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -359,7 +357,7 @@ export default function UsersIndex({ users, roles, metrics, filters }: Props) {
                                         onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
                                         className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-emerald-500"
                                     />
-                                    {errors?.email && <p className="text-[10px] text-rose-400 mt-1">{errors.email}</p>}
+                                    {errors?.email && <p className="text-[11px] text-rose-400 mt-1">{errors.email}</p>}
                                 </div>
 
                                 <div>
@@ -425,7 +423,7 @@ export default function UsersIndex({ users, roles, metrics, filters }: Props) {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-glow-emerald"
+                                    className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-ink font-bold text-xs shadow-glow-emerald"
                                 >
                                     {loading ? 'Creating...' : 'Create Staff Member'}
                                 </button>
@@ -535,7 +533,7 @@ export default function UsersIndex({ users, roles, metrics, filters }: Props) {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-glow-cyan"
+                                    className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-ink font-bold text-xs shadow-glow-cyan"
                                 >
                                     {loading ? 'Saving...' : 'Update Staff Member'}
                                 </button>

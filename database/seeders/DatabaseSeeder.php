@@ -22,6 +22,11 @@ use App\Models\SalePayment;
 use App\Models\StockAdjustment;
 use App\Models\AuditLog;
 
+/**
+ * Full DEMO dataset: sample staff (password "password"), medicines, batches,
+ * customers and sales. Use for the live demo and local development only —
+ * real installations use `php artisan pharmacare:install` instead.
+ */
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
@@ -30,7 +35,7 @@ class DatabaseSeeder extends Seeder
         $admin = User::firstOrCreate(
             ['email' => 'admin@pharmacare.ai'],
             [
-                'name' => 'Dr. Alexander Vance (Super Admin)',
+                'name' => 'Dr. Alexander Vance',
                 'password' => Hash::make('password'),
                 'role' => 'super_admin',
                 'phone' => '+1 (555) 019-2834',
@@ -42,7 +47,7 @@ class DatabaseSeeder extends Seeder
         $pharmacist = User::firstOrCreate(
             ['email' => 'pharmacist@pharmacare.ai'],
             [
-                'name' => 'Dr. Elena Rostova (Lead Pharmacist)',
+                'name' => 'Dr. Elena Rostova',
                 'password' => Hash::make('password'),
                 'role' => 'pharmacist',
                 'phone' => '+1 (555) 014-9821',
@@ -54,7 +59,7 @@ class DatabaseSeeder extends Seeder
         $cashier = User::firstOrCreate(
             ['email' => 'cashier@pharmacare.ai'],
             [
-                'name' => 'Marcus Chen (Senior Cashier)',
+                'name' => 'Marcus Chen',
                 'password' => Hash::make('password'),
                 'role' => 'cashier',
                 'phone' => '+1 (555) 018-7744',
@@ -66,7 +71,7 @@ class DatabaseSeeder extends Seeder
         $inventoryManager = User::firstOrCreate(
             ['email' => 'inventory@pharmacare.ai'],
             [
-                'name' => 'Tariq Al-Mansoor (Inventory Manager)',
+                'name' => 'Tariq Al-Mansoor',
                 'password' => Hash::make('password'),
                 'role' => 'inventory_manager',
                 'phone' => '+1 (555) 012-4491',
@@ -75,114 +80,32 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 2. Master Categories
-        $categories = [
-            ['name' => 'Antibiotics & Antimicrobials', 'slug' => 'antibiotics', 'icon' => 'ShieldAlert'],
-            ['name' => 'Analgesics & Pain Relief', 'slug' => 'analgesics', 'icon' => 'Activity'],
-            ['name' => 'Gastrointestinal & Anti-Ulcer', 'slug' => 'gastrointestinal', 'icon' => 'HeartPulse'],
-            ['name' => 'Cardiovascular & Hypertension', 'slug' => 'cardiovascular', 'icon' => 'Heart'],
-            ['name' => 'Respiratory & Anti-Allergy', 'slug' => 'respiratory', 'icon' => 'Wind'],
-            ['name' => 'Diabetes & Endocrine Care', 'slug' => 'diabetes', 'icon' => 'Droplet'],
-            ['name' => 'Vitamins & Dietary Supplements', 'slug' => 'vitamins', 'icon' => 'Sparkles'],
-            ['name' => 'Obstetrics, Gynae & Antenatal', 'slug' => 'obstetrics-gynae', 'icon' => 'Heart'],
-            ['name' => 'Dermatology & Topicals', 'slug' => 'dermatology', 'icon' => 'Layers'],
-        ];
+        // 2–7. Reference data (categories, forms, units, manufacturers, generics, DDI rules)
+        $this->call(MasterDataSeeder::class);
 
-        $categoryModels = [];
-        foreach ($categories as $cat) {
-            $categoryModels[$cat['slug']] = Category::create($cat);
-        }
+        // Demo store profile (shown on receipts & invoices)
+        \App\Models\StoreSetting::getSettings()->update([
+            'store_name' => 'PharmaCare Demo Pharmacy',
+            'store_tagline' => 'Your neighbourhood pharmacy',
+            'address' => 'House 12, Road 4, Dhanmondi, Dhaka-1205',
+            'phone' => '+880 1711-000000',
+            'email' => 'hello@pharmacare.example',
+            'drug_license_no' => 'Drug Lic: DL-89410',
+            'vat_reg_no' => 'BIN: 002948192-0101',
+            'receipt_footer' => 'Thank you! Get well soon.',
+        ]);
 
-        // 3. Dosage Forms
-        $forms = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Cream / Ointment', 'Inhaler', 'Eye / Ear Drops', 'Oral Suspension', 'Oral Solution'];
-        $formModels = [];
-        foreach ($forms as $form) {
-            $formModels[$form] = DosageForm::create(['name' => $form]);
-        }
+        $categoryModels = Category::all()->keyBy('slug')->all();
+        $formModels = DosageForm::all()->keyBy('name')->all();
+        $unitModels = Unit::all()->keyBy('name')->all();
+        $mfgModels = Manufacturer::all()->keyBy('name')->all();
+        $genericModels = GenericName::all()->keyBy('name')->all();
 
-        // 4. Units
-        $units = [
-            ['name' => 'Box', 'short_name' => 'Box'],
-            ['name' => 'Strip', 'short_name' => 'Str'],
-            ['name' => 'Piece / Tablet', 'short_name' => 'Pcs'],
-            ['name' => 'Bottle', 'short_name' => 'Btl'],
-            ['name' => 'Vial', 'short_name' => 'Vial'],
-            ['name' => 'Tube', 'short_name' => 'Tube'],
-            ['name' => 'Inhaler Device', 'short_name' => 'Dev'],
-        ];
-        $unitModels = [];
-        foreach ($units as $u) {
-            $unitModels[$u['name']] = Unit::create($u);
-        }
-
-        // 5. Manufacturers & Suppliers
-        $manufacturers = [
-            [
-                'name' => 'Square Pharmaceuticals Ltd.',
-                'contact_person' => 'Mohammad Rahman',
-                'email' => 'sales@squarepharma.com',
-                'phone' => '+880 2 8833047',
-                'address' => 'Square Centre, 48 Mohakhali C/A, Dhaka',
-                'code' => 'SQR-001',
-            ],
-            [
-                'name' => 'Beximco Pharmaceuticals Ltd.',
-                'contact_person' => 'Tanvir Ahmed',
-                'email' => 'orders@beximcopharma.com',
-                'phone' => '+880 2 58611001',
-                'address' => '19 Dhanmondi R/A, Road 7, Dhaka',
-                'code' => 'BEX-002',
-            ],
-            [
-                'name' => 'Incepta Pharmaceuticals Ltd.',
-                'contact_person' => 'Farhana Kabir',
-                'email' => 'contact@inceptapharma.com',
-                'phone' => '+880 2 8891688',
-                'address' => '40 Shahid Tajuddin Ahmed Sarani, Dhaka',
-                'code' => 'INC-003',
-            ],
-            [
-                'name' => 'Renata Limited',
-                'contact_person' => 'Sazzad Hossain',
-                'email' => 'info@renata-ltd.com',
-                'phone' => '+880 2 8001450',
-                'address' => 'Plot 1, Milk Vita Road, Section 7, Mirpur, Dhaka',
-                'code' => 'REN-004',
-            ],
-            [
-                'name' => 'Popular Pharmaceuticals Ltd.',
-                'contact_person' => 'Dr. Kazi Mostafa',
-                'email' => 'contact@popular-pharma.com',
-                'phone' => '+880 2 9669480',
-                'address' => 'Popular Tower, Dhanmondi, Dhaka',
-                'code' => 'POP-005',
-            ],
-            [
-                'name' => 'Pfizer Global Healthcare',
-                'contact_person' => 'Sarah Jenkins',
-                'email' => 'distributors@pfizer.com',
-                'phone' => '+1 (800) 879-3477',
-                'address' => '66 Hudson Blvd E, New York, NY 10001',
-                'code' => 'PFZ-006',
-            ],
-        ];
-
-        $mfgModels = [];
+        // Demo suppliers (one per seeded manufacturer)
         $supplierModels = [];
-        foreach ($manufacturers as $mfg) {
-            $m = Manufacturer::create([
+        foreach (MasterDataSeeder::MANUFACTURERS as $mfg) {
+            $supplierModels[$mfg['name']] = Supplier::firstOrCreate(['company_code' => $mfg['code']], [
                 'name' => $mfg['name'],
-                'contact_person' => $mfg['contact_person'],
-                'email' => $mfg['email'],
-                'phone' => $mfg['phone'],
-                'address' => $mfg['address'],
-                'is_active' => true,
-            ]);
-            $mfgModels[$mfg['name']] = $m;
-
-            $s = Supplier::create([
-                'name' => $mfg['name'],
-                'company_code' => $mfg['code'],
                 'contact_person' => $mfg['contact_person'],
                 'email' => $mfg['email'],
                 'phone' => $mfg['phone'],
@@ -192,94 +115,6 @@ class DatabaseSeeder extends Seeder
                 'total_paid' => 12000.00,
                 'is_active' => true,
             ]);
-            $supplierModels[$mfg['name']] = $s;
-        }
-
-        // 6. Generic Names
-        $genericsData = [
-            ['name' => 'Paracetamol', 'therapeutic_class' => 'Analgesic / Antipyretic', 'pregnancy_category' => 'B'],
-            ['name' => 'Paracetamol + Caffeine', 'therapeutic_class' => 'Combination Analgesic', 'pregnancy_category' => 'C'],
-            ['name' => 'Omeprazole', 'therapeutic_class' => 'Proton Pump Inhibitor (PPI)', 'pregnancy_category' => 'C'],
-            ['name' => 'Esomeprazole', 'therapeutic_class' => 'Proton Pump Inhibitor (PPI)', 'pregnancy_category' => 'B'],
-            ['name' => 'Fexofenadine HCl', 'therapeutic_class' => 'Second-Generation Antihistamine', 'pregnancy_category' => 'C'],
-            ['name' => 'Ciprofloxacin', 'therapeutic_class' => 'Fluoroquinolone Antibiotic', 'pregnancy_category' => 'C'],
-            ['name' => 'Azithromycin', 'therapeutic_class' => 'Macrolide Antibiotic', 'pregnancy_category' => 'B'],
-            ['name' => 'Montelukast Sodium', 'therapeutic_class' => 'Leukotriene Receptor Antagonist', 'pregnancy_category' => 'B'],
-            ['name' => 'Amlodipine Besylate', 'therapeutic_class' => 'Calcium Channel Blocker', 'pregnancy_category' => 'C'],
-            ['name' => 'Atorvastatin Calcium', 'therapeutic_class' => 'HMG-CoA Reductase Inhibitor', 'pregnancy_category' => 'X'],
-            ['name' => 'Metformin HCl', 'therapeutic_class' => 'Biguanide Antidiabetic', 'pregnancy_category' => 'B'],
-            ['name' => 'Aluminum Hydroxide + Magnesium (Antacid)', 'therapeutic_class' => 'Antacid', 'pregnancy_category' => 'B'],
-            ['name' => 'Warfarin Sodium', 'therapeutic_class' => 'Anticoagulant', 'pregnancy_category' => 'X'],
-            ['name' => 'Aspirin (Acetylsalicylic Acid)', 'therapeutic_class' => 'Antiplatelet / NSAID', 'pregnancy_category' => 'D'],
-            ['name' => 'Clopidogrel', 'therapeutic_class' => 'Antiplatelet', 'pregnancy_category' => 'B'],
-            ['name' => 'Sildenafil Citrate', 'therapeutic_class' => 'PDE5 Inhibitor', 'pregnancy_category' => 'B'],
-            ['name' => 'Nitroglycerin / Glyceryl Trinitrate', 'therapeutic_class' => 'Nitrate Vasodilator', 'pregnancy_category' => 'C'],
-            
-            // Antenatal & Gynae Generics (from real prescription)
-            ['name' => 'Carbonyl Iron + Folic Acid + Zinc Sulfate Monohydrate', 'therapeutic_class' => 'Hematinic & Antianemic', 'pregnancy_category' => 'A'],
-            ['name' => 'Multivitamin & Multimineral Essentials (For nursing mother)', 'therapeutic_class' => 'Antenatal Vitamin Supplement', 'pregnancy_category' => 'A'],
-            ['name' => 'Calcium Orotate + Vitamin D3 (Coral Calcium)', 'therapeutic_class' => 'Mineral & Vitamin Supplement', 'pregnancy_category' => 'C'],
-            ['name' => 'Calcium Folinate (Folinic Acid)', 'therapeutic_class' => 'Active Folate / Antianemic', 'pregnancy_category' => 'A'],
-            ['name' => 'Doxylamine Succinate + Pyridoxine HCl', 'therapeutic_class' => 'Antiemetic for Nausea/Vomiting of Pregnancy', 'pregnancy_category' => 'A'],
-            ['name' => 'Tiemonium Methylsulphate', 'therapeutic_class' => 'Antispasmodic / Smooth Muscle Relaxant', 'pregnancy_category' => 'B'],
-            ['name' => 'Lactulose Solution', 'therapeutic_class' => 'Osmotic Laxative', 'pregnancy_category' => 'B'],
-            ['name' => 'Mebhydrolin Napadisylate', 'therapeutic_class' => 'Antihistamine / Antiallergic', 'pregnancy_category' => 'B'],
-        ];
-
-        $genericModels = [];
-        foreach ($genericsData as $g) {
-            $genericModels[$g['name']] = GenericName::create($g);
-        }
-
-        // 7. Clinical Drug-Drug Interactions
-        $interactions = [
-            [
-                'generic_a' => 'Ciprofloxacin',
-                'generic_b' => 'Aluminum Hydroxide + Magnesium (Antacid)',
-                'severity' => 'severe',
-                'description' => 'Polyvalent cations (aluminum/magnesium) chelate ciprofloxacin in the GI tract, reducing antibiotic absorption by up to 85%.',
-                'clinical_management' => 'Administer ciprofloxacin at least 2 hours before or 6 hours after antacid ingestion.',
-            ],
-            [
-                'generic_a' => 'Warfarin Sodium',
-                'generic_b' => 'Aspirin (Acetylsalicylic Acid)',
-                'severity' => 'fatal',
-                'description' => 'Concurrent anticoagulant and antiplatelet therapy dramatically escalates major hemorrhage and fatal gastrointestinal bleeding risks.',
-                'clinical_management' => 'Avoid co-prescription unless under specialized cardiac protocol. Closely monitor INR.',
-            ],
-            [
-                'generic_a' => 'Clopidogrel',
-                'generic_b' => 'Omeprazole',
-                'severity' => 'severe',
-                'description' => 'Omeprazole inhibits CYP2C19, significantly blunting the metabolic activation and antiplatelet efficacy of clopidogrel.',
-                'clinical_management' => 'Switch to Pantoprazole or H2-receptor blocker if acid suppression is mandatory.',
-            ],
-            [
-                'generic_a' => 'Sildenafil Citrate',
-                'generic_b' => 'Nitroglycerin / Glyceryl Trinitrate',
-                'severity' => 'fatal',
-                'description' => 'Potentiation of nitric oxide pathway causes catastrophic, potentially fatal systemic hypotension.',
-                'clinical_management' => 'Absolute contraindication. Minimum 24-48 hour separation required.',
-            ],
-            [
-                'generic_a' => 'Atorvastatin Calcium',
-                'generic_b' => 'Azithromycin',
-                'severity' => 'moderate',
-                'description' => 'Macrolides may increase systemic exposure of atorvastatin, increasing the risk of rhabdomyolysis and myopathy.',
-                'clinical_management' => 'Monitor for unexplained muscle pain, tenderness, or weakness.',
-            ],
-        ];
-
-        foreach ($interactions as $ddi) {
-            if (isset($genericModels[$ddi['generic_a']]) && isset($genericModels[$ddi['generic_b']])) {
-                DrugInteraction::create([
-                    'generic_a_id' => $genericModels[$ddi['generic_a']]->id,
-                    'generic_b_id' => $genericModels[$ddi['generic_b']]->id,
-                    'severity' => $ddi['severity'],
-                    'description' => $ddi['description'],
-                    'clinical_management' => $ddi['clinical_management'],
-                ]);
-            }
         }
 
         // 8. Realistic Medicines Catalog

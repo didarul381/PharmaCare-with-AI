@@ -9,11 +9,13 @@ class ExampleTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_guests_are_redirected_to_the_login_page(): void
     {
-        $this->seed();
-        $response = $this->get('/');
+        $this->get('/')->assertRedirect('/login');
+    }
 
-        $response->assertStatus(200);
+    public function test_the_login_page_renders(): void
+    {
+        $this->get('/login')->assertOk();
     }
 }

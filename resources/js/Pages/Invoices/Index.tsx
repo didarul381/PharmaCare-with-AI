@@ -31,8 +31,19 @@ import {
 import { Sale, StoreSetting, PageProps } from '@/types';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
 
+interface Pagination {
+    current_page: number;
+    last_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+    prev_url: string | null;
+    next_url: string | null;
+}
+
 interface Props {
     invoices: Sale[];
+    pagination?: Pagination;
     metrics: {
         total_invoiced: number;
         total_collected: number;
@@ -50,7 +61,7 @@ interface Props {
     };
 }
 
-export default function InvoicesIndex({ invoices, metrics, settings, filters }: Props) {
+export default function InvoicesIndex({ invoices, pagination, metrics, settings, filters }: Props) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [selectedStatus, setSelectedStatus] = useState(filters.status || 'all');
     const [selectedMethod, setSelectedMethod] = useState(filters.payment_method || '');
@@ -307,13 +318,13 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                 className: 'bg-red-500/20 text-red-300 border-red-500/30',
             };
         }
-        if (sale.payment_status === 'paid' || sale.due_amount <= 0) {
+        if (sale.payment_status === 'paid' || Number(sale.due_amount) <= 0) {
             return {
                 label: 'PAID FULL',
                 className: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
             };
         }
-        if (sale.payment_status === 'partial' || (sale.due_amount > 0 && sale.paid_amount > 0)) {
+        if (sale.payment_status === 'partial' || (Number(sale.due_amount) > 0 && Number(sale.paid_amount) > 0)) {
             return {
                 label: `DUE ৳${sale.due_amount}`,
                 className: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
@@ -346,14 +357,11 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
             header={
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
-                            <span>Invoice Manager & Sales Ledger</span>
-                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">
-                                Multi-Template Print
-                            </span>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>Invoices & Returns</span>
                         </h1>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                            Real-time sales invoices, due collections, customer credit balances, and return restocks
+                        <p className="text-sm text-slate-400 mt-1">
+                            Find any sale, reprint receipts, collect dues and process returns.
                         </p>
                     </div>
 
@@ -369,7 +377,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                 </div>
             }
         >
-            <Head title="Invoice Manager & Sales Ledger" />
+            <Head title="Invoices & Returns" />
 
             {/* Top Financial Stat Metric Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
@@ -381,7 +389,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                         </div>
                     </div>
                     <div className="text-2xl font-black text-white">{formatCurrency(metrics.total_invoiced)}</div>
-                    <p className="text-[10px] text-slate-500 mt-1">{metrics.total_invoices} total generated invoices</p>
+                    <p className="text-[11px] text-slate-500 mt-1">{metrics.total_invoices} total generated invoices</p>
                 </div>
 
                 <div className="glass-panel p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 relative overflow-hidden">
@@ -392,7 +400,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                         </div>
                     </div>
                     <div className="text-2xl font-black text-emerald-400">{formatCurrency(metrics.total_collected)}</div>
-                    <p className="text-[10px] text-emerald-400/70 mt-1">Settled payments received</p>
+                    <p className="text-[11px] text-emerald-400/70 mt-1">Settled payments received</p>
                 </div>
 
                 <div className="glass-panel p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 relative overflow-hidden">
@@ -403,7 +411,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                         </div>
                     </div>
                     <div className="text-2xl font-black text-amber-400">{formatCurrency(metrics.total_dues)}</div>
-                    <p className="text-[10px] text-amber-400/70 mt-1">Pending credit balance collections</p>
+                    <p className="text-[11px] text-amber-400/70 mt-1">Pending credit balance collections</p>
                 </div>
 
                 <div className="glass-panel p-4 rounded-2xl border border-rose-500/30 bg-rose-500/5 relative overflow-hidden">
@@ -414,7 +422,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                         </div>
                     </div>
                     <div className="text-2xl font-black text-rose-400">{metrics.returned_count}</div>
-                    <p className="text-[10px] text-rose-400/70 mt-1">Invoices adjusted & restocked</p>
+                    <p className="text-[11px] text-rose-400/70 mt-1">Invoices adjusted & restocked</p>
                 </div>
             </div>
 
@@ -437,7 +445,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                 className={cn(
                                     "px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition shrink-0",
                                     isSelected
-                                        ? "bg-cyan-500 text-slate-950 font-bold shadow-glow-cyan"
+                                        ? "bg-cyan-500 text-ink font-bold shadow-glow-cyan"
                                         : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
                                 )}
                             >
@@ -524,15 +532,19 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
                     <h2 className="text-sm font-bold text-white flex items-center gap-2">
                         <Receipt className="w-4 h-4 text-cyan-400" />
-                        Invoiced Transactions Directory
+                        All invoices
                     </h2>
-                    <span className="text-[11px] text-slate-400">Showing {invoices.length} invoices</span>
+                    <span className="text-sm text-slate-400">
+                        {pagination && pagination.total > 0
+                            ? `Showing ${pagination.from}–${pagination.to} of ${pagination.total}`
+                            : `${invoices.length} invoices`}
+                    </span>
                 </div>
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                         <thead>
-                            <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase text-[10px] font-bold">
+                            <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase text-[11px] font-bold">
                                 <th className="py-3 px-4">Invoice # & Date</th>
                                 <th className="py-3 px-4">Customer</th>
                                 <th className="py-3 px-4">Staff / Cashier</th>
@@ -562,7 +574,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                                 >
                                                     {sale.invoice_number}
                                                 </button>
-                                                <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                                                <span className="text-[11px] text-slate-400 font-mono block mt-0.5">
                                                     {formatDate(sale.created_at)}
                                                 </span>
                                             </td>
@@ -570,23 +582,23 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                             <td className="py-3 px-4">
                                                 <div className="font-bold text-white">{sale.customer?.name || 'Walk-in Customer'}</div>
                                                 {sale.customer?.phone && (
-                                                    <span className="text-[10px] text-slate-400 font-mono">{sale.customer.phone}</span>
+                                                    <span className="text-[11px] text-slate-400 font-mono">{sale.customer.phone}</span>
                                                 )}
-                                                {sale.prescription?.doctor && (
-                                                    <span className="text-[10px] text-emerald-400 flex items-center gap-1 mt-0.5">
-                                                        <Stethoscope className="w-2.5 h-2.5" /> Dr. {sale.prescription.doctor.name}
+                                                {sale.prescription?.doctor_name && (
+                                                    <span className="text-[11px] text-emerald-400 flex items-center gap-1 mt-0.5">
+                                                        <Stethoscope className="w-2.5 h-2.5" /> {sale.prescription.doctor_name}
                                                     </span>
                                                 )}
                                             </td>
 
                                             <td className="py-3 px-4">
                                                 <span className="font-medium text-slate-300 block">{sale.user?.name || 'Cashier'}</span>
-                                                <span className="text-[10px] text-slate-500 capitalize">{sale.user?.role?.replace('_', ' ') || 'Staff'}</span>
+                                                <span className="text-[11px] text-slate-500 capitalize">{sale.user?.role?.replace('_', ' ') || 'Staff'}</span>
                                             </td>
 
                                             <td className="py-3 px-4">
                                                 <span className="font-bold text-white">{sale.items?.length || 0} Products</span>
-                                                <span className="text-[10px] text-slate-400 block truncate max-w-[160px]">
+                                                <span className="text-[11px] text-slate-400 block truncate max-w-[160px]">
                                                     {sale.items?.map(i => i.medicine?.name).filter(Boolean).join(', ') || 'Prescription items'}
                                                 </span>
                                             </td>
@@ -597,13 +609,13 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
 
                                             <td className="py-3 px-4">
                                                 <span className={cn(
-                                                    "px-2.5 py-1 rounded-full text-[10px] font-bold border inline-block",
+                                                    "px-2.5 py-1 rounded-full text-[11px] font-bold border inline-block",
                                                     statusBadge.className
                                                 )}>
                                                     {statusBadge.label}
                                                 </span>
-                                                {sale.due_amount > 0 && (
-                                                    <span className="text-[10px] text-slate-400 block mt-0.5">
+                                                {Number(sale.due_amount) > 0 && (
+                                                    <span className="text-[11px] text-slate-400 block mt-0.5">
                                                         Paid: {formatCurrency(sale.paid_amount)}
                                                     </span>
                                                 )}
@@ -611,7 +623,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
 
                                             <td className="py-3 px-4">
                                                 <span className={cn(
-                                                    "px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase border",
+                                                    "px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase border",
                                                     getMethodBadge(sale.payment_method)
                                                 )}>
                                                     {sale.payment_method}
@@ -629,7 +641,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                                         <span>Invoice</span>
                                                     </button>
 
-                                                    {sale.due_amount > 0 && !sale.is_returned && (
+                                                    {Number(sale.due_amount) > 0 && !sale.is_returned && (
                                                         <button
                                                             onClick={() => openDueModal(sale)}
                                                             title="Collect Due Payment"
@@ -657,6 +669,28 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                         </tbody>
                     </table>
                 </div>
+
+                {pagination && pagination.last_page > 1 && (
+                    <nav className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between gap-3" aria-label="Invoice pages">
+                        <button
+                            type="button"
+                            disabled={!pagination.prev_url}
+                            onClick={() => pagination.prev_url && router.visit(pagination.prev_url, { preserveScroll: false })}
+                            className="min-h-[40px] px-4 rounded-xl border border-slate-700 text-sm font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none"
+                        >
+                            ← Previous
+                        </button>
+                        <span className="text-sm text-slate-400">Page {pagination.current_page} of {pagination.last_page}</span>
+                        <button
+                            type="button"
+                            disabled={!pagination.next_url}
+                            onClick={() => pagination.next_url && router.visit(pagination.next_url, { preserveScroll: false })}
+                            className="min-h-[40px] px-4 rounded-xl border border-slate-700 text-sm font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none"
+                        >
+                            Next →
+                        </button>
+                    </nav>
+                )}
             </div>
 
             {/* Modal 1: Multi-Format Invoice Viewer & Print Generator */}
@@ -677,7 +711,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                         onClick={() => setPrintTemplate('a4')}
                                         className={cn(
                                             "px-2.5 py-1 rounded-lg text-xs font-semibold transition",
-                                            printTemplate === 'a4' ? "bg-cyan-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                                            printTemplate === 'a4' ? "bg-cyan-500 text-ink shadow" : "text-slate-400 hover:text-white"
                                         )}
                                     >
                                         A4 Tax Invoice
@@ -686,7 +720,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                         onClick={() => setPrintTemplate('thermal80')}
                                         className={cn(
                                             "px-2.5 py-1 rounded-lg text-xs font-semibold transition",
-                                            printTemplate === 'thermal80' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                                            printTemplate === 'thermal80' ? "bg-emerald-500 text-ink shadow" : "text-slate-400 hover:text-white"
                                         )}
                                     >
                                         80mm Thermal
@@ -695,7 +729,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                         onClick={() => setPrintTemplate('thermal58')}
                                         className={cn(
                                             "px-2.5 py-1 rounded-lg text-xs font-semibold transition",
-                                            printTemplate === 'thermal58' ? "bg-amber-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                                            printTemplate === 'thermal58' ? "bg-amber-500 text-ink shadow" : "text-slate-400 hover:text-white"
                                         )}
                                     >
                                         58mm Compact
@@ -706,7 +740,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={handlePrintTrigger}
-                                    className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs shadow-glow-emerald flex items-center gap-1.5 transition"
+                                    className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-ink font-bold text-xs shadow-glow-emerald flex items-center gap-1.5 transition"
                                 >
                                     <Printer className="w-4 h-4" />
                                     <span>Print Now</span>
@@ -721,7 +755,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                         <div className="flex-1 overflow-y-auto py-4 font-sans text-slate-900">
                             {/* Template 1: A4 Standard Tax Invoice */}
                             {printTemplate === 'a4' && (
-                                <div id="printable-invoice" className="bg-white p-8 rounded-2xl shadow-md border border-slate-200 text-slate-900 text-xs">
+                                <div id="printable-invoice" className="stock-colors bg-white p-8 rounded-2xl shadow-md border border-slate-200 text-slate-900 text-xs">
                                     {/* Header & Pharmacy Profile */}
                                     <div className="flex items-start justify-between pb-6 border-b border-slate-200">
                                         <div>
@@ -729,11 +763,11 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                                 {settings.store_name}
                                             </h2>
                                             <p className="text-xs text-slate-600 mt-0.5">{settings.store_tagline}</p>
-                                            <p className="text-[11px] text-slate-600 mt-1 max-w-sm">{settings.store_address}</p>
-                                            {(settings.store_phone || settings.store_email) && (
-                                                <div className="flex items-center gap-4 text-[11px] text-slate-600 mt-1 font-mono">
-                                                    {settings.store_phone && <span>Phone: {settings.store_phone}</span>}
-                                                    {settings.store_email && <span>Email: {settings.store_email}</span>}
+                                            <p className="text-xs text-slate-600 mt-1 max-w-sm">{settings.address}</p>
+                                            {(settings.phone || settings.email) && (
+                                                <div className="flex items-center gap-4 text-xs text-slate-600 mt-1 font-mono">
+                                                    {settings.phone && <span>Phone: {settings.phone}</span>}
+                                                    {settings.email && <span>Email: {settings.email}</span>}
                                                 </div>
                                             )}
                                         </div>
@@ -743,12 +777,12 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                                 TAX INVOICE / CASH MEMO
                                             </span>
                                             <div className="font-mono font-bold text-sm text-slate-950">{viewingInvoice.invoice_number}</div>
-                                            <div className="text-[11px] text-slate-500 font-mono mt-0.5">{formatDate(viewingInvoice.created_at)}</div>
-                                            {settings.tax_id_number && (
-                                                <div className="text-[11px] text-slate-600 font-mono mt-1">BIN/TIN: {settings.tax_id_number}</div>
+                                            <div className="text-xs text-slate-500 font-mono mt-0.5">{formatDate(viewingInvoice.created_at)}</div>
+                                            {settings.vat_reg_no && (
+                                                <div className="text-xs text-slate-600 font-mono mt-1">{settings.vat_reg_no}</div>
                                             )}
-                                            {settings.drug_license_number && (
-                                                <div className="text-[11px] text-emerald-700 font-mono font-bold">DGDA Lic: {settings.drug_license_number}</div>
+                                            {settings.drug_license_no && (
+                                                <div className="text-xs text-emerald-700 font-mono font-bold">{settings.drug_license_no}</div>
                                             )}
                                         </div>
                                     </div>
@@ -756,25 +790,25 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                     {/* Customer & Prescribing Doctor details */}
                                     <div className="grid grid-cols-2 gap-6 py-4 border-b border-slate-200">
                                         <div>
-                                            <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider block">Billed To (Patient / Customer)</span>
+                                            <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider block">Billed To (Patient / Customer)</span>
                                             <p className="text-sm font-bold text-slate-950 mt-0.5">{viewingInvoice.customer?.name || 'Walk-in Customer'}</p>
                                             {viewingInvoice.customer?.phone && (
-                                                <p className="text-[11px] text-slate-600 font-mono">Phone: {viewingInvoice.customer.phone}</p>
+                                                <p className="text-xs text-slate-600 font-mono">Phone: {viewingInvoice.customer.phone}</p>
                                             )}
                                             {viewingInvoice.customer?.address && (
-                                                <p className="text-[11px] text-slate-600">{viewingInvoice.customer.address}</p>
+                                                <p className="text-xs text-slate-600">{viewingInvoice.customer.address}</p>
                                             )}
                                         </div>
 
                                         <div className="text-right">
-                                            <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider block">Dispensation Station</span>
+                                            <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider block">Dispensation Station</span>
                                             <p className="text-xs font-bold text-slate-950 mt-0.5">Dispensed by: {viewingInvoice.user?.name || 'Lead Pharmacist'}</p>
-                                            {viewingInvoice.prescription?.doctor && (
-                                                <p className="text-[11px] text-emerald-700 font-semibold">
-                                                    Rx Doctor: Dr. {viewingInvoice.prescription.doctor.name} ({viewingInvoice.prescription.doctor.qualification || 'MBBS'})
+                                            {viewingInvoice.prescription?.doctor_name && (
+                                                <p className="text-xs text-emerald-700 font-semibold">
+                                                    Prescribed by: {viewingInvoice.prescription.doctor_name}
                                                 </p>
                                             )}
-                                            <p className="text-[11px] text-slate-600 uppercase font-mono">Payment: {viewingInvoice.payment_method}</p>
+                                            <p className="text-xs text-slate-600 uppercase font-mono">Payment: {viewingInvoice.payment_method}</p>
                                         </div>
                                     </div>
 
@@ -782,7 +816,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                     <div className="py-4">
                                         <table className="w-full text-left text-xs">
                                             <thead>
-                                                <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold uppercase text-[10px]">
+                                                <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold uppercase text-[11px]">
                                                     <th className="py-2.5 px-3">#</th>
                                                     <th className="py-2.5 px-3">Item / Generic Molecule</th>
                                                     <th className="py-2.5 px-3">Batch & Expiry</th>
@@ -797,12 +831,12 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                                         <td className="py-2.5 px-3 text-slate-400 font-mono">{idx + 1}</td>
                                                         <td className="py-2.5 px-3">
                                                             <div className="font-bold text-slate-950">{item.medicine?.name}</div>
-                                                            <div className="text-[10px] text-slate-500">{item.medicine?.generic_name?.name}</div>
+                                                            <div className="text-[11px] text-slate-500">{item.medicine?.generic_name?.name}</div>
                                                         </td>
-                                                        <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">
+                                                        <td className="py-2.5 px-3 font-mono text-xs text-slate-600">
                                                             <div>{item.batch?.batch_number || 'Direct'}</div>
                                                             {item.batch?.expiry_date && (
-                                                                <div className="text-[10px] text-slate-500">Exp: {formatDate(item.batch.expiry_date)}</div>
+                                                                <div className="text-[11px] text-slate-500">Exp: {formatDate(item.batch.expiry_date)}</div>
                                                             )}
                                                         </td>
                                                         <td className="py-2.5 px-3 text-center font-bold text-slate-950">
@@ -823,7 +857,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                     {/* Calculations & Settlement Breakdown */}
                                     <div className="pt-4 border-t border-slate-200 grid grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] space-y-1">
+                                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
                                                 <span className="font-bold text-slate-800 block">Payment History & Ledger</span>
                                                 {viewingInvoice.payments?.map(p => (
                                                     <div key={p.id} className="flex items-center justify-between text-slate-600 font-mono">
@@ -832,7 +866,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                                     </div>
                                                 ))}
                                                 {viewingInvoice.notes && (
-                                                    <p className="text-[10px] text-slate-500 italic mt-1 border-t border-slate-200 pt-1">
+                                                    <p className="text-[11px] text-slate-500 italic mt-1 border-t border-slate-200 pt-1">
                                                         Notes: {viewingInvoice.notes}
                                                     </p>
                                                 )}
@@ -845,14 +879,14 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                                 <span>{formatCurrency(viewingInvoice.subtotal)}</span>
                                             </div>
 
-                                            {viewingInvoice.discount_amount > 0 && (
+                                            {Number(viewingInvoice.discount_amount) > 0 && (
                                                 <div className="flex justify-between text-emerald-700 font-bold">
                                                     <span>Special Discount:</span>
                                                     <span>- {formatCurrency(viewingInvoice.discount_amount)}</span>
                                                 </div>
                                             )}
 
-                                            {viewingInvoice.tax_amount > 0 && (
+                                            {Number(viewingInvoice.tax_amount) > 0 && (
                                                 <div className="flex justify-between text-slate-600">
                                                     <span>Govt VAT / Tax ({viewingInvoice.tax_percentage}%):</span>
                                                     <span>+ {formatCurrency(viewingInvoice.tax_amount)}</span>
@@ -869,7 +903,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                                 <span>{formatCurrency(viewingInvoice.paid_amount)}</span>
                                             </div>
 
-                                            {viewingInvoice.due_amount > 0 ? (
+                                            {Number(viewingInvoice.due_amount) > 0 ? (
                                                 <div className="flex justify-between text-rose-600 font-black text-sm border-t border-rose-200 pt-1">
                                                     <span>Remaining Due Balance:</span>
                                                     <span>{formatCurrency(viewingInvoice.due_amount)}</span>
@@ -883,8 +917,8 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                     </div>
 
                                     {/* Footer Terms & Legal Disclaimer */}
-                                    <div className="mt-8 pt-4 border-t border-slate-200 text-center text-[10px] text-slate-500">
-                                        <p>{settings.receipt_footer_message}</p>
+                                    <div className="mt-8 pt-4 border-t border-slate-200 text-center text-[11px] text-slate-500">
+                                        <p>{settings.receipt_footer}</p>
                                         <p className="mt-1 font-mono">This is a system generated institutional tax invoice. Thank you for choosing {settings.store_name}.</p>
                                     </div>
                                 </div>
@@ -896,21 +930,21 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                     <div
                                         id="printable-thermal"
                                         className={cn(
-                                            "bg-white text-slate-950 p-4 rounded-xl shadow-lg border border-slate-200 font-mono text-[11px]",
-                                            printTemplate === 'thermal80' ? "w-[340px]" : "w-[260px] text-[10px]"
+                                            "stock-colors bg-white text-slate-950 p-4 rounded-xl shadow-lg border border-slate-200 font-mono text-xs",
+                                            printTemplate === 'thermal80' ? "w-[340px]" : "w-[260px] text-[11px]"
                                         )}
                                     >
                                         <div className="text-center pb-2 border-b border-dashed border-slate-400">
                                             <h3 className="font-black text-base uppercase">{settings.store_name}</h3>
-                                            <p className="text-[10px] text-slate-600">{settings.store_tagline}</p>
-                                            <p className="text-[10px] text-slate-600">{settings.store_address}</p>
-                                            {settings.store_phone && <p className="text-[10px] text-slate-600">Tel: {settings.store_phone}</p>}
-                                            {settings.drug_license_number && (
-                                                <p className="text-[10px] font-bold text-slate-800">Lic: {settings.drug_license_number}</p>
+                                            <p className="text-[11px] text-slate-600">{settings.store_tagline}</p>
+                                            <p className="text-[11px] text-slate-600">{settings.address}</p>
+                                            {settings.phone && <p className="text-[11px] text-slate-600">Tel: {settings.phone}</p>}
+                                            {settings.drug_license_no && (
+                                                <p className="text-[11px] font-bold text-slate-800">{settings.drug_license_no}</p>
                                             )}
                                         </div>
 
-                                        <div className="py-2 border-b border-dashed border-slate-400 space-y-0.5 text-[10px]">
+                                        <div className="py-2 border-b border-dashed border-slate-400 space-y-0.5 text-[11px]">
                                             <div className="flex justify-between">
                                                 <span>INV: <strong>{viewingInvoice.invoice_number}</strong></span>
                                                 <span>{formatDate(viewingInvoice.created_at)}</span>
@@ -925,7 +959,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                                 <div key={i.id} className="flex justify-between items-start">
                                                     <div className="flex-1 min-w-0 pr-2">
                                                         <div className="font-bold truncate">{i.medicine?.name}</div>
-                                                        <div className="text-[9px] text-slate-500">{i.quantity} x {formatCurrency(i.unit_price)}</div>
+                                                        <div className="text-[11px] text-slate-500">{i.quantity} x {formatCurrency(i.unit_price)}</div>
                                                     </div>
                                                     <div className="font-bold">{formatCurrency(i.total_price)}</div>
                                                 </div>
@@ -938,13 +972,13 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                                 <span>Subtotal:</span>
                                                 <span>{formatCurrency(viewingInvoice.subtotal)}</span>
                                             </div>
-                                            {viewingInvoice.discount_amount > 0 && (
+                                            {Number(viewingInvoice.discount_amount) > 0 && (
                                                 <div className="flex justify-between text-emerald-800">
                                                     <span>Discount:</span>
                                                     <span>-{formatCurrency(viewingInvoice.discount_amount)}</span>
                                                 </div>
                                             )}
-                                            {viewingInvoice.tax_amount > 0 && (
+                                            {Number(viewingInvoice.tax_amount) > 0 && (
                                                 <div className="flex justify-between">
                                                     <span>Govt VAT ({viewingInvoice.tax_percentage}%):</span>
                                                     <span>+{formatCurrency(viewingInvoice.tax_amount)}</span>
@@ -958,7 +992,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                                 <span>Paid ({viewingInvoice.payment_method.toUpperCase()}):</span>
                                                 <span>{formatCurrency(viewingInvoice.paid_amount)}</span>
                                             </div>
-                                            {viewingInvoice.due_amount > 0 && (
+                                            {Number(viewingInvoice.due_amount) > 0 && (
                                                 <div className="flex justify-between font-bold text-rose-700">
                                                     <span>DUE BALANCE:</span>
                                                     <span>{formatCurrency(viewingInvoice.due_amount)}</span>
@@ -966,8 +1000,8 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                             )}
                                         </div>
 
-                                        <div className="text-center pt-3 text-[9px] text-slate-600">
-                                            <p>{settings.receipt_footer_message}</p>
+                                        <div className="text-center pt-3 text-[11px] text-slate-600">
+                                            <p>{settings.receipt_footer}</p>
                                             <p className="mt-1 font-bold">*** PHARMACARE AI ***</p>
                                         </div>
                                     </div>
@@ -1061,7 +1095,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-glow-amber"
+                                    className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-ink font-bold text-xs shadow-glow-amber"
                                 >
                                     {loading ? 'Recording...' : 'Record Payment'}
                                 </button>
@@ -1147,7 +1181,7 @@ export default function InvoicesIndex({ invoices, metrics, settings, filters }: 
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="px-5 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold text-xs shadow-glow-rose"
+                                    className="px-5 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-ink font-bold text-xs shadow-glow-rose"
                                 >
                                     {loading ? 'Processing...' : 'Confirm Return & Restock'}
                                 </button>

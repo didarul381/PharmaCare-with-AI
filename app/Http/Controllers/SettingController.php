@@ -55,7 +55,7 @@ class SettingController extends Controller
             StoreSetting::clearCache();
 
             // Audit Log
-            $user = $request->user() ?? \App\Models\User::first();
+            $user = $request->user();
             if ($user) {
                 AuditLog::create([
                     'user_id' => $user->id,

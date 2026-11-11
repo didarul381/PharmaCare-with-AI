@@ -154,7 +154,7 @@ class ReportController extends Controller
                 'batch',
                 'sale.customer',
                 'sale.user',
-                'sale.prescription.doctor',
+                'sale.prescription',
             ])
             ->latest()
             ->limit(50)
@@ -171,7 +171,7 @@ class ReportController extends Controller
                     'unit' => $item->unit_name,
                     'patient_name' => $item->sale?->customer?->name ?? 'Walk-in Patient',
                     'patient_phone' => $item->sale?->customer?->phone ?? 'N/A',
-                    'doctor_name' => $item->sale?->prescription?->doctor?->name ? 'Dr. ' . $item->sale->prescription->doctor->name : 'N/A (Counter Rx)',
+                    'doctor_name' => $item->sale?->prescription?->doctor_name ?: 'N/A (Counter Rx)',
                     'dispensed_by' => $item->sale?->user?->name ?? 'Lead Pharmacist',
                 ];
             });
@@ -347,7 +347,7 @@ class ReportController extends Controller
                         ->whereHas('medicine', function ($q) {
                             $q->where('is_controlled_substance', true);
                         })
-                        ->with(['medicine.genericName', 'batch', 'sale.customer', 'sale.user', 'sale.prescription.doctor'])
+                        ->with(['medicine.genericName', 'batch', 'sale.customer', 'sale.user', 'sale.prescription'])
                         ->chunk(100, function ($items) use ($handle) {
                             foreach ($items as $i) {
                                 fputcsv($handle, [
@@ -360,7 +360,7 @@ class ReportController extends Controller
                                     $i->unit_name,
                                     $i->sale?->customer?->name ?? 'Walk-in',
                                     $i->sale?->customer?->phone ?? '',
-                                    $i->sale?->prescription?->doctor?->name ? 'Dr. ' . $i->sale->prescription->doctor->name : 'N/A',
+                                    $i->sale?->prescription?->doctor_name ?: 'N/A',
                                     $i->sale?->user?->name ?? 'Pharmacist',
                                 ]);
                             }

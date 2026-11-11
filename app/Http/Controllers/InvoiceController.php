@@ -33,7 +33,7 @@ class InvoiceController extends Controller
         $query = Sale::with([
             'customer',
             'user',
-            'prescription.doctor',
+            'prescription',
             'items.medicine.genericName',
             'items.medicine.dosageForm',
             'items.batch',
@@ -68,7 +68,7 @@ class InvoiceController extends Controller
             $query->whereDate('created_at', '<=', Carbon::parse($endDate));
         }
 
-        $invoices = $query->take(150)->get();
+        $invoices = $query->paginate(50)->withQueryString();
 
         $metrics = [
             'total_invoiced' => (float) Sale::where('is_returned', false)->sum('grand_total'),
@@ -79,7 +79,16 @@ class InvoiceController extends Controller
         ];
 
         return Inertia::render('Invoices/Index', [
-            'invoices' => $invoices,
+            'invoices' => $invoices->items(),
+            'pagination' => [
+                'current_page' => $invoices->currentPage(),
+                'last_page' => $invoices->lastPage(),
+                'total' => $invoices->total(),
+                'from' => $invoices->firstItem(),
+                'to' => $invoices->lastItem(),
+                'prev_url' => $invoices->previousPageUrl(),
+                'next_url' => $invoices->nextPageUrl(),
+            ],
             'metrics' => $metrics,
             'settings' => StoreSetting::getSettings(),
             'filters' => [
@@ -104,8 +113,7 @@ class InvoiceController extends Controller
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $currentUserId = $request->session()->get('active_user_id') ?? $request->user()?->id;
-        $currentUser = $currentUserId ? User::find($currentUserId) : User::first();
+        $currentUser = $request->user();
 
         DB::transaction(function () use ($sale, $validated, $currentUser, $request) {
             $amount = (float) $validated['amount'];
@@ -144,7 +152,7 @@ class InvoiceController extends Controller
 
             // 4. Regulatory Audit Log
             AuditLog::create([
-                'user_id' => $currentUser?->id ?? 1,
+                'user_id' => $currentUser->id,
                 'action' => 'invoice_due_collected',
                 'entity_type' => 'Sale',
                 'entity_id' => $sale->id,
@@ -182,8 +190,7 @@ class InvoiceController extends Controller
             'refund_amount' => ['required', 'numeric', 'min:0'],
         ]);
 
-        $currentUserId = $request->session()->get('active_user_id') ?? $request->user()?->id;
-        $currentUser = $currentUserId ? User::find($currentUserId) : User::first();
+        $currentUser = $request->user();
 
         DB::transaction(function () use ($sale, $validated, $currentUser, $request) {
             $restock = $validated['restock_items'] ?? true;
@@ -208,7 +215,7 @@ class InvoiceController extends Controller
 
             // Regulatory Audit Log
             AuditLog::create([
-                'user_id' => $currentUser?->id ?? 1,
+                'user_id' => $currentUser->id,
                 'action' => 'invoice_returned_refunded',
                 'entity_type' => 'Sale',
                 'entity_id' => $sale->id,

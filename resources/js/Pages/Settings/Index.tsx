@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
+import { toast } from '@/lib/notify';
 
 interface StoreSettingsData {
     id?: number;
@@ -50,15 +51,15 @@ interface Props {
 
 export default function SettingsIndex({ settings, ai_config }: Props) {
     const [formData, setFormData] = useState<StoreSettingsData>({
-        store_name: settings?.store_name || 'PharmaCare AI Rx',
-        store_tagline: settings?.store_tagline || 'Enterprise Pharmacy & Healthcare',
-        address: settings?.address || 'House #12, Road #4, Dhanmondi, Dhaka-1205',
-        phone: settings?.phone || '+880 2 8833047 | +880 1711-000000',
-        email: settings?.email || 'contact@pharmacare.com',
-        drug_license_no: settings?.drug_license_no || 'FDA/DGDA Lic: 89410',
-        vat_reg_no: settings?.vat_reg_no || 'BIN: 002948192-0101',
-        receipt_footer: settings?.receipt_footer || 'Thank you for choosing PharmaCare AI! Quick healing.',
-        default_tax_rate: Number(settings?.default_tax_rate) || 5.00,
+        store_name: settings?.store_name || 'My Pharmacy',
+        store_tagline: settings?.store_tagline ?? '',
+        address: settings?.address ?? '',
+        phone: settings?.phone ?? '',
+        email: settings?.email ?? '',
+        drug_license_no: settings?.drug_license_no ?? '',
+        vat_reg_no: settings?.vat_reg_no ?? '',
+        receipt_footer: settings?.receipt_footer ?? '',
+        default_tax_rate: settings?.default_tax_rate != null ? Number(settings.default_tax_rate) : 5.0,
         currency_symbol: settings?.currency_symbol || '৳',
         thermal_printer_width: settings?.thermal_printer_width || '80mm',
         show_tax_on_receipt: settings?.show_tax_on_receipt ?? true,
@@ -115,7 +116,7 @@ export default function SettingsIndex({ settings, ai_config }: Props) {
 
         const printWindow = window.open('', '_blank', 'width=400,height=600');
         if (!printWindow) {
-            alert('Please allow popups to test print.');
+            toast.warning('Allow pop-ups for this site to print a test receipt.');
             return;
         }
 
@@ -165,29 +166,26 @@ export default function SettingsIndex({ settings, ai_config }: Props) {
             header={
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
-                            <span>Pharmacy & POS Settings</span>
-                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">
-                                Store Profile & Invoicing
-                            </span>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>Settings</span>
                         </h1>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                            Customize your pharmacy name, address, contact numbers, drug license, VAT BIN, and thermal receipt layout
+                        <p className="text-sm text-slate-400 mt-1">
+                            Your pharmacy details, VAT, receipt layout and AI keys.
                         </p>
                     </div>
 
                     <button
                         onClick={handleSubmit}
                         disabled={isSaving}
-                        className="px-4 sm:px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs shadow-glow-emerald flex items-center justify-center gap-2 transition transform hover:scale-[1.02] disabled:opacity-50 self-start sm:self-auto"
+                        className="px-4 sm:px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-ink font-bold text-xs shadow-glow-emerald flex items-center justify-center gap-2 transition transform hover:scale-[1.02] disabled:opacity-50 self-start sm:self-auto"
                     >
-                        <Save className="w-4 h-4 text-slate-950" />
+                        <Save className="w-4 h-4 text-ink" />
                         <span>{isSaving ? 'Saving Changes...' : 'Save Settings'}</span>
                     </button>
                 </div>
             }
         >
-            <Head title="Store Settings & Thermal Receipt Setup" />
+            <Head title="Settings" />
 
             {/* Toast alert */}
             {toastMsg && (
@@ -206,14 +204,14 @@ export default function SettingsIndex({ settings, ai_config }: Props) {
                 {/* Left Form: Store Profile & Billing Configurations (7 cols) */}
                 <div className="lg:col-span-7 space-y-6">
                     {/* Store Profile Card */}
-                    <div className="glass-panel rounded-3xl p-6 border border-slate-800/90 bg-gradient-to-b from-slate-900/90 to-[#0a0f1d] shadow-xl space-y-4">
+                    <div className="glass-panel rounded-3xl p-6 border border-slate-800/90 bg-gradient-to-b from-slate-900/90 to-deep shadow-xl space-y-4">
                         <div className="flex items-center gap-2.5 pb-3 border-b border-slate-800">
                             <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
                                 <Building2 className="w-5 h-5" />
                             </div>
                             <div>
                                 <h2 className="text-sm font-bold text-white">Pharmacy Identity & Contact Profile</h2>
-                                <p className="text-[11px] text-slate-400">Displayed on thermal POS receipts, patient invoices, and regulatory logs</p>
+                                <p className="text-xs text-slate-400">Displayed on thermal POS receipts, patient invoices, and regulatory logs</p>
                             </div>
                         </div>
 
@@ -301,7 +299,7 @@ export default function SettingsIndex({ settings, ai_config }: Props) {
                                     type="text"
                                     value={formData.drug_license_no || ''}
                                     onChange={(e) => handleChange('drug_license_no', e.target.value)}
-                                    placeholder="e.g. FDA/DGDA Lic: 89410"
+                                    placeholder="e.g. Drug Lic: DL-12345"
                                     className="w-full text-xs bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white font-mono focus:outline-none focus:border-cyan-500"
                                 />
                             </div>
@@ -324,14 +322,14 @@ export default function SettingsIndex({ settings, ai_config }: Props) {
                     </div>
 
                     {/* POS & Receipt Printing Configuration */}
-                    <div className="glass-panel rounded-3xl p-6 border border-slate-800/90 bg-gradient-to-b from-slate-900/90 to-[#0a0f1d] shadow-xl space-y-4">
+                    <div className="glass-panel rounded-3xl p-6 border border-slate-800/90 bg-gradient-to-b from-slate-900/90 to-deep shadow-xl space-y-4">
                         <div className="flex items-center gap-2.5 pb-3 border-b border-slate-800">
                             <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                                 <Printer className="w-5 h-5" />
                             </div>
                             <div>
                                 <h2 className="text-sm font-bold text-white">POS Thermal Invoicing & Tax Defaults</h2>
-                                <p className="text-[11px] text-slate-400">Configure receipt layout, roll width, default tax rates, and footer greetings</p>
+                                <p className="text-xs text-slate-400">Configure receipt layout, roll width, default tax rates, and footer greetings</p>
                             </div>
                         </div>
 
@@ -426,19 +424,19 @@ export default function SettingsIndex({ settings, ai_config }: Props) {
 
                 {/* Right Area: Live Thermal Receipt Simulator (5 cols) */}
                 <div className="lg:col-span-5 space-y-4">
-                    <div className="glass-panel rounded-3xl p-6 border border-slate-800/90 bg-gradient-to-b from-[#0e1628] to-[#070b13] shadow-2xl flex flex-col justify-between">
+                    <div className="glass-panel rounded-3xl p-6 border border-slate-800/90 bg-gradient-to-b from-panel to-deep shadow-2xl flex flex-col justify-between">
                         <div>
                             <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
                                 <div className="flex items-center gap-2">
                                     <Receipt className="w-5 h-5 text-cyan-400" />
                                     <h3 className="text-sm font-bold text-white">Live Thermal Receipt Simulator</h3>
                                 </div>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-800 text-cyan-300 border border-slate-700">
+                                <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-slate-800 text-cyan-300 border border-slate-700">
                                     {formData.thermal_printer_width}
                                 </span>
                             </div>
 
-                            <p className="text-[11px] text-slate-400 mb-4">
+                            <p className="text-xs text-slate-400 mb-4">
                                 This live preview reflects the exact layout printed on your physical receipt printer during POS checkout:
                             </p>
 
@@ -446,7 +444,7 @@ export default function SettingsIndex({ settings, ai_config }: Props) {
                             <div
                                 id="thermal-receipt-preview"
                                 className={cn(
-                                    "mx-auto p-4 rounded-2xl bg-white text-slate-950 font-mono text-xs shadow-2xl space-y-2 border border-slate-300 transition-all",
+                                    "stock-colors mx-auto p-4 rounded-2xl bg-white text-slate-950 font-mono text-xs shadow-2xl space-y-2 border border-slate-300 transition-all",
                                     formData.thermal_printer_width === '58mm' ? 'max-w-[240px]' : 'max-w-[310px]'
                                 )}
                             >
@@ -455,23 +453,23 @@ export default function SettingsIndex({ settings, ai_config }: Props) {
                                         {formData.store_name}
                                     </h4>
                                     {formData.store_tagline && (
-                                        <p className="text-[10px] text-slate-700">{formData.store_tagline}</p>
+                                        <p className="text-[11px] text-slate-700">{formData.store_tagline}</p>
                                     )}
                                     {formData.address && (
-                                        <p className="text-[10px] text-slate-600 mt-0.5">{formData.address}</p>
+                                        <p className="text-[11px] text-slate-600 mt-0.5">{formData.address}</p>
                                     )}
                                     {formData.phone && (
-                                        <p className="text-[10px] text-slate-600">Tel: {formData.phone}</p>
+                                        <p className="text-[11px] text-slate-600">Tel: {formData.phone}</p>
                                     )}
                                     {formData.show_license_on_receipt && (
-                                        <div className="text-[9px] text-slate-600 mt-0.5 space-y-0.2">
+                                        <div className="text-[11px] text-slate-600 mt-0.5 space-y-0.2">
                                             {formData.drug_license_no && <div>{formData.drug_license_no}</div>}
                                             {formData.vat_reg_no && <div>{formData.vat_reg_no}</div>}
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="text-[10px] space-y-0.5 border-b border-slate-300 pb-2">
+                                <div className="text-[11px] space-y-0.5 border-b border-slate-300 pb-2">
                                     <div>Invoice: <span className="font-bold">INV-20260906-89AF1</span></div>
                                     <div>Date: 06 Sept 2026, 02:25 PM</div>
                                     <div>Customer: Walk-in Retail Customer</div>
@@ -480,17 +478,17 @@ export default function SettingsIndex({ settings, ai_config }: Props) {
 
                                 {/* Items List */}
                                 <div className="border-b border-slate-300 pb-2 space-y-1">
-                                    <div className="flex justify-between text-[11px]">
+                                    <div className="flex justify-between text-xs">
                                         <div>
                                             <span className="font-bold">Tab. Natcoral Dx 500mg</span>
-                                            <span className="text-[9px] block text-slate-600">Qty: 2 x {formData.currency_symbol}240.00 (FEFO: NC4410)</span>
+                                            <span className="text-[11px] block text-slate-600">Qty: 2 x {formData.currency_symbol}240.00 (FEFO: NC4410)</span>
                                         </div>
                                         <span className="font-bold">{formData.currency_symbol}480.00</span>
                                     </div>
-                                    <div className="flex justify-between text-[11px]">
+                                    <div className="flex justify-between text-xs">
                                         <div>
                                             <span className="font-bold">Cap. Progut 20mg</span>
-                                            <span className="text-[9px] block text-slate-600">Qty: 1 x {formData.currency_symbol}7.00 (FEFO: PG8810)</span>
+                                            <span className="text-[11px] block text-slate-600">Qty: 1 x {formData.currency_symbol}7.00 (FEFO: PG8810)</span>
                                         </div>
                                         <span className="font-bold">{formData.currency_symbol}7.00</span>
                                     </div>
@@ -498,16 +496,16 @@ export default function SettingsIndex({ settings, ai_config }: Props) {
 
                                 {/* Summary */}
                                 <div className="text-right space-y-0.5 pt-1 text-xs">
-                                    <div className="flex justify-between text-[11px]">
+                                    <div className="flex justify-between text-xs">
                                         <span>Subtotal:</span>
                                         <span>{formData.currency_symbol}487.00</span>
                                     </div>
-                                    <div className="flex justify-between text-[11px] text-emerald-800 font-bold">
+                                    <div className="flex justify-between text-xs text-emerald-800 font-bold">
                                         <span>Discount (5.00%):</span>
                                         <span>-{formData.currency_symbol}24.35</span>
                                     </div>
                                     {formData.show_tax_on_receipt && (
-                                        <div className="flex justify-between text-[11px]">
+                                        <div className="flex justify-between text-xs">
                                             <span>Govt VAT / Tax ({formData.default_tax_rate}%):</span>
                                             <span>{formData.currency_symbol}{((487 - 24.35) * (formData.default_tax_rate / 100)).toFixed(2)}</span>
                                         </div>
@@ -518,14 +516,14 @@ export default function SettingsIndex({ settings, ai_config }: Props) {
                                             {formData.currency_symbol}{((487 - 24.35) * (1 + formData.default_tax_rate / 100)).toFixed(2)}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between text-[11px] text-slate-600">
+                                    <div className="flex justify-between text-xs text-slate-600">
                                         <span>Paid (Cash):</span>
                                         <span>{formData.currency_symbol}{((487 - 24.35) * (1 + formData.default_tax_rate / 100)).toFixed(2)}</span>
                                     </div>
                                 </div>
 
                                 {formData.receipt_footer && (
-                                    <div className="text-center pt-2 text-[9px] text-slate-500 border-t border-slate-200">
+                                    <div className="text-center pt-2 text-[11px] text-slate-500 border-t border-slate-200">
                                         {formData.receipt_footer}
                                     </div>
                                 )}

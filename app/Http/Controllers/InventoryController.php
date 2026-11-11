@@ -123,13 +123,11 @@ class InventoryController extends Controller
 
         $medicine = Medicine::create($validated);
 
-        $user = $request->session()->get('active_user_id') 
-            ? User::find($request->session()->get('active_user_id')) 
-            : ($request->user() ?? User::first());
+        $user = $request->user();
 
         // Audit Trail
         AuditLog::create([
-            'user_id' => $user?->id ?? 1,
+            'user_id' => $user->id,
             'action' => 'medicine_created',
             'entity_type' => 'Medicine',
             'entity_id' => $medicine->id,
@@ -152,9 +150,7 @@ class InventoryController extends Controller
 
     public function destroyMedicine(Medicine $medicine, Request $request): RedirectResponse
     {
-        $user = $request->session()->get('active_user_id') 
-            ? User::find($request->session()->get('active_user_id')) 
-            : ($request->user() ?? User::first());
+        $user = $request->user();
 
         // RBAC Check: Only Super Admin and Inventory Manager can delete/archive medicines
         if ($user && !in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_INVENTORY_MANAGER])) {
@@ -175,7 +171,7 @@ class InventoryController extends Controller
 
         // Audit Trail for Sensitive Deletion
         AuditLog::create([
-            'user_id' => $user?->id ?? 1,
+            'user_id' => $user->id,
             'action' => 'medicine_deleted',
             'entity_type' => 'Medicine',
             'entity_id' => $medicine->id,
@@ -233,7 +229,7 @@ class InventoryController extends Controller
 
         $medicine = Medicine::findOrFail($validated['medicine_id']);
         $batch = !empty($validated['batch_id']) ? Batch::find($validated['batch_id']) : null;
-        $user = $request->user() ?? \App\Models\User::first();
+        $user = $request->user();
 
         $this->inventoryService->adjustStock(
             $medicine,

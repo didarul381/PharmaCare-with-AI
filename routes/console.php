@@ -1,8 +1,19 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+/*
+|--------------------------------------------------------------------------
+| Scheduled tasks
+|--------------------------------------------------------------------------
+|
+| Add this single cron entry on the server:
+|   * * * * * cd /path-to-pharmacare && php artisan schedule:run >> /dev/null 2>&1
+|
+*/
+
+// Public demo only: restore pristine demo data periodically.
+Schedule::command('pharmacare:demo-reset')
+    ->cron(config('pharmacare.demo_reset_cron', '0 */6 * * *'))
+    ->when(fn () => (bool) config('pharmacare.demo_mode'))
+    ->withoutOverlapping();

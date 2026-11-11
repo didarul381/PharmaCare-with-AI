@@ -29,6 +29,7 @@ import {
 } from 'recharts';
 import { GenericName, DrugInteraction } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
+import { toast } from '@/lib/notify';
 
 interface Props {
     forecast: {
@@ -73,7 +74,7 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
             const data = await res.json();
             setTestResult(data);
         } catch (err: any) {
-            alert('Failed to run DDI test: ' + err.message);
+            toast.error(err.message, 'Could not run the interaction check');
         } finally {
             setIsTesting(false);
         }
@@ -85,27 +86,24 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
             header={
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
-                            <span>AI Clinical Intelligence & Forecasting</span>
-                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-500/30 to-emerald-500/30 text-cyan-300 border border-cyan-500/40 font-bold">
-                                LLM + Machine Learning Suite
-                            </span>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>AI Insights</span>
                         </h1>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                            Predictive consumption forecasting, seasonal restocking models, and clinical interaction simulator
+                        <p className="text-sm text-slate-400 mt-1">
+                            Restock forecasts from your sales history, plus a drug-interaction checker.
                         </p>
                     </div>
 
                     <div className="flex items-center gap-2">
                         <div className="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
                             <Sparkles className="w-3.5 h-3.5" />
-                            <span>Confidence: {forecast.summary.forecast_confidence}%</span>
+                            <span>Estimates from the last 30 days of sales</span>
                         </div>
                     </div>
                 </div>
             }
         >
-            <Head title="AI Intelligence & Demand Forecasting" />
+            <Head title="AI Insights" />
 
             {/* Top KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
@@ -118,7 +116,7 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
                             {forecast.summary.critical_items_count} Medicines
                         </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">Imminent depletion detected</p>
+                    <p className="text-xs text-slate-400 mt-1">Imminent depletion detected</p>
                 </div>
 
                 <div className="glass-panel rounded-2xl p-4 border border-slate-800/80">
@@ -130,7 +128,7 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
                             {forecast.summary.reorder_items_count} Medicines
                         </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">Lead time threshold buffer reached</p>
+                    <p className="text-xs text-slate-400 mt-1">Lead time threshold buffer reached</p>
                 </div>
 
                 <div className="glass-panel rounded-2xl p-4 border border-slate-800/80">
@@ -142,7 +140,7 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
                             {formatCurrency(forecast.summary.total_estimated_restock_cost)}
                         </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">30-Day optimal supply</p>
+                    <p className="text-xs text-slate-400 mt-1">30-Day optimal supply</p>
                 </div>
 
                 <div className="glass-panel rounded-2xl p-4 border border-slate-800/80">
@@ -154,7 +152,7 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
                             {interactions.length} Intersections
                         </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">Active contraindication shield</p>
+                    <p className="text-xs text-slate-400 mt-1">Active contraindication shield</p>
                 </div>
             </div>
 
@@ -169,7 +167,7 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
                                     <TrendingUp className="w-4 h-4 text-cyan-400" />
                                     12-Month Seasonal Demand Trajectory & Projection
                                 </h2>
-                                <p className="text-[11px] text-slate-400">
+                                <p className="text-xs text-slate-400">
                                     Predictive consumption modeling for: <span className="text-white font-bold">{selectedItem?.name}</span> ({selectedItem?.sku})
                                 </p>
                             </div>
@@ -193,16 +191,16 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
                                             <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.0} />
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                                    <XAxis dataKey="month" stroke="#64748b" tick={{ fontSize: 11 }} />
-                                    <YAxis stroke="#64748b" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}u`} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--slate-800))" vertical={false} />
+                                    <XAxis dataKey="month" stroke="rgb(var(--slate-500))" tick={{ fontSize: 12 }} />
+                                    <YAxis stroke="rgb(var(--slate-500))" tick={{ fontSize: 12 }} tickFormatter={(v) => `${v}u`} />
                                     <Tooltip
                                         contentStyle={{
-                                            backgroundColor: '#0f172a',
-                                            borderColor: '#334155',
+                                            backgroundColor: 'rgb(var(--slate-900))',
+                                            borderColor: 'rgb(var(--slate-700))',
                                             borderRadius: '0.75rem',
                                             fontSize: '12px',
-                                            color: '#f8fafc',
+                                            color: 'rgb(var(--slate-50))',
                                         }}
                                         formatter={(value: any, name: any) => [
                                             `${value} Units`,
@@ -235,15 +233,15 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
 
                     <div className="mt-4 pt-3 border-t border-slate-800 grid grid-cols-3 gap-3 text-center">
                         <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
-                            <span className="text-[10px] text-slate-500 uppercase block">Daily Consumption</span>
+                            <span className="text-[11px] text-slate-500 uppercase block">Daily Consumption</span>
                             <span className="text-xs font-bold text-white">{selectedItem?.daily_velocity} Units / Day</span>
                         </div>
                         <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
-                            <span className="text-[10px] text-slate-500 uppercase block">Predicted 30d Need</span>
+                            <span className="text-[11px] text-slate-500 uppercase block">Predicted 30d Need</span>
                             <span className="text-xs font-bold text-cyan-300">{selectedItem?.predicted_30d_demand} Units</span>
                         </div>
                         <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
-                            <span className="text-[10px] text-slate-500 uppercase block">Recommended PO</span>
+                            <span className="text-[11px] text-slate-500 uppercase block">Recommended PO</span>
                             <span className="text-xs font-bold text-emerald-400">+{selectedItem?.suggested_order_qty} Units</span>
                         </div>
                     </div>
@@ -271,7 +269,7 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
                                     <div className="flex items-center justify-between mb-1">
                                         <span className="font-bold text-white text-xs block truncate">{item.name}</span>
                                         <span className={cn(
-                                            "text-[10px] font-bold px-1.5 py-0.2 rounded",
+                                            "text-[11px] font-bold px-1.5 py-0.2 rounded",
                                             item.urgency === 'critical_stockout'
                                                 ? "bg-rose-500/20 text-rose-400"
                                                 : "bg-slate-800 text-slate-400"
@@ -279,7 +277,7 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
                                             {item.days_of_supply}d supply
                                         </span>
                                     </div>
-                                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                                    <div className="flex items-center justify-between text-xs text-slate-400">
                                         <span>Stock: {item.current_stock}</span>
                                         <span className="text-emerald-400 font-bold">
                                             Rec: +{item.suggested_order_qty}
@@ -293,14 +291,14 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
             </div>
 
             {/* Interactive DDI Clinical Simulator */}
-            <div className="glass-panel rounded-3xl p-6 border border-slate-800/80 bg-gradient-to-br from-[#0d1322] to-[#070b13]">
+            <div className="glass-panel rounded-3xl p-6 border border-slate-800/80 bg-gradient-to-br from-panel to-deep">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
                     <div>
                         <h2 className="text-sm font-bold text-white flex items-center gap-2">
                             <FlaskConical className="w-4 h-4 text-emerald-400" />
                             Interactive Drug-Drug Interaction (DDI) Safety Sandbox
                         </h2>
-                        <p className="text-[11px] text-slate-400">Cross-reference active generic compounds before prescribing or dispensing</p>
+                        <p className="text-xs text-slate-400">Cross-reference active generic compounds before prescribing or dispensing</p>
                     </div>
 
                     <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
@@ -339,7 +337,7 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
                         <button
                             onClick={runDdiTest}
                             disabled={isTesting}
-                            className="w-full py-2.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-glow-emerald flex items-center justify-center gap-1.5 transition"
+                            className="w-full py-2.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-ink shadow-glow-emerald flex items-center justify-center gap-1.5 transition"
                         >
                             <Zap className="w-3.5 h-3.5" />
                             <span>{isTesting ? 'Analyzing Interactions...' : 'Simulate DDI Safety'}</span>
@@ -357,7 +355,7 @@ export default function AiInsightsIndex({ forecast, generics, interactions }: Pr
                                         <ShieldAlert className="w-4 h-4" />
                                         {testResult.interaction.severity} Interaction Detected
                                     </span>
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 uppercase">
+                                    <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 uppercase">
                                         Hazard Level: {testResult.interaction.severity}
                                     </span>
                                 </div>

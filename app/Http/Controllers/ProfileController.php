@@ -18,8 +18,7 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
-        $userId = $request->session()->get('active_user_id') ?? $request->user()?->id;
-        $user = $userId ? User::find($userId) : User::first();
+        $user = $request->user();
 
         $recentLogs = $user ? AuditLog::where('user_id', $user->id)->latest('created_at')->take(10)->get() : [];
 
@@ -35,8 +34,7 @@ class ProfileController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
-        $userId = $request->session()->get('active_user_id') ?? $request->user()?->id;
-        $user = $userId ? User::findOrFail($userId) : User::firstOrFail();
+        $user = $request->user();
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],

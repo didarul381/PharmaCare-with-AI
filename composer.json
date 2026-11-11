@@ -1,10 +1,17 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "pharmacare/pharmacare",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
-    "license": "MIT",
+    "description": "PharmaCare — pharmacy POS, FEFO inventory, prescriptions, AI assistance and reports (Laravel + React).",
+    "keywords": [
+        "pharmacy",
+        "pos",
+        "inventory",
+        "laravel",
+        "inertia",
+        "react"
+    ],
+    "license": "proprietary",
     "require": {
         "php": "^8.3",
         "inertiajs/inertia-laravel": "^3.3",

@@ -61,6 +61,11 @@ class MedicineApiService
      */
     public function searchMedex(string $term): array
     {
+        // Third-party website lookup is opt-in: check that site's terms of use before enabling.
+        if (! config('pharmacare.medex_lookup')) {
+            return [];
+        }
+
         try {
             $url = "https://medex.com.bd/search?search=" . urlencode($term);
             $response = Http::timeout(6)

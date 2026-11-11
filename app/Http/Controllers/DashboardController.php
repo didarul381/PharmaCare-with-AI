@@ -25,23 +25,33 @@ class DashboardController extends Controller
     {
         $metrics = $this->inventoryService->getInventoryMetrics();
 
-        // Total sales today
-        $todaySales = Sale::whereDate('created_at', Carbon::today())->sum('grand_total');
-        $totalSalesAllTime = Sale::sum('grand_total');
+        // Revenue (returned sales excluded)
+        $sales = Sale::query()->where('is_returned', false);
+        $todaySales = (clone $sales)->whereDate('created_at', Carbon::today())->sum('grand_total');
+        $todayCount = (clone $sales)->whereDate('created_at', Carbon::today())->count();
+        $yesterdaySales = (clone $sales)->whereDate('created_at', Carbon::yesterday())->sum('grand_total');
+        $totalSalesAllTime = (clone $sales)->sum('grand_total');
         $totalPrescriptionsCount = Prescription::count();
 
-        // 7-day revenue trend
+        // % change vs yesterday (null when there is nothing to compare against)
+        $changeVsYesterday = $yesterdaySales > 0
+            ? round((($todaySales - $yesterdaySales) / $yesterdaySales) * 100, 1)
+            : null;
+
+        // 7-day revenue trend — real figures only, one grouped query
+        $from = Carbon::today()->subDays(6);
+        $daily = (clone $sales)
+            ->where('created_at', '>=', $from)
+            ->selectRaw('DATE(created_at) as day, SUM(grand_total) as total')
+            ->groupBy('day')
+            ->pluck('total', 'day');
+
         $revenueTrend = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
-            $dayTotal = Sale::whereDate('created_at', $date)->sum('grand_total');
-            // If new DB, inject sensible baseline for visualization
-            if ($dayTotal == 0 && $i > 0) {
-                $dayTotal = 450 + (sin($i) * 120) + rand(20, 80);
-            }
             $revenueTrend[] = [
                 'date' => $date->format('d M'),
-                'revenue' => round((float) $dayTotal, 2),
+                'revenue' => round((float) ($daily[$date->toDateString()] ?? 0), 2),
             ];
         }
 
@@ -79,6 +89,9 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard', [
             'metrics' => [
                 'today_sales' => (float) $todaySales,
+                'today_count' => $todayCount,
+                'yesterday_sales' => (float) $yesterdaySales,
+                'change_vs_yesterday' => $changeVsYesterday,
                 'total_sales' => (float) $totalSalesAllTime,
                 'inventory_value' => $metrics['total_sales_value'],
                 'critical_expiring_count' => $metrics['critical_expiring_count'],

@@ -36,8 +36,11 @@ class PrescriptionController extends Controller
     public function saveAiKey(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'openai_api_key' => 'nullable|string',
-            'gemini_api_key' => 'nullable|string',
+            // Keys are written into .env — allow only key characters so no newline/env injection is possible.
+            'openai_api_key' => ['nullable', 'string', 'max:300', 'regex:/^[A-Za-z0-9_\-\.]*$/'],
+            'gemini_api_key' => ['nullable', 'string', 'max:300', 'regex:/^[A-Za-z0-9_\-\.]*$/'],
+        ], [
+            'regex' => 'That does not look like a valid API key.',
         ]);
 
         $openaiKey = trim($validated['openai_api_key'] ?? '');
@@ -54,7 +57,7 @@ class PrescriptionController extends Controller
         // Persist into .env file if writable
         try {
             $envPath = base_path('.env');
-            if (file_exists($envPath) && is_writable($envPath)) {
+            if (! app()->runningUnitTests() && file_exists($envPath) && is_writable($envPath)) {
                 $envContent = file_get_contents($envPath);
 
                 if (!empty($openaiKey)) {
@@ -93,7 +96,7 @@ class PrescriptionController extends Controller
             'image_base64' => 'nullable|string',
         ]);
 
-        $user = $request->user() ?? \App\Models\User::first();
+        $user = $request->user();
         $file = $request->file('image') ?? $request->input('image_base64');
 
         try {

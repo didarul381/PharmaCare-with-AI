@@ -54,7 +54,7 @@ class SupplierController extends Controller
             'items.*.unit_cost' => 'required|numeric|min:0',
         ]);
 
-        $user = $request->user() ?? \App\Models\User::first();
+        $user = $request->user();
         $poNumber = 'PO-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -4));
 
         DB::transaction(function () use ($validated, $user, $poNumber) {
@@ -103,7 +103,7 @@ class SupplierController extends Controller
             'batches.*.selling_price' => 'required|numeric|min:0',
         ]);
 
-        $user = $request->user() ?? \App\Models\User::first();
+        $user = $request->user();
         $grnNumber = 'GRN-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -4));
 
         DB::transaction(function () use ($validated, $order, $user, $grnNumber) {

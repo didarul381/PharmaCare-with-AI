@@ -60,8 +60,7 @@ class UserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $currentUserId = $request->session()->get('active_user_id') ?? $request->user()?->id;
-        $currentUser = $currentUserId ? User::find($currentUserId) : User::first();
+        $currentUser = $request->user();
 
         // RBAC Check: Only Super Admin can manage staff
         if ($currentUser && !$currentUser->isSuperAdmin()) {
@@ -89,7 +88,7 @@ class UserController extends Controller
 
         // Audit Trail
         AuditLog::create([
-            'user_id' => $currentUser?->id ?? 1,
+            'user_id' => $currentUser->id,
             'action' => 'user_created',
             'entity_type' => 'User',
             'entity_id' => $user->id,
@@ -113,8 +112,7 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user): RedirectResponse
     {
-        $currentUserId = $request->session()->get('active_user_id') ?? $request->user()?->id;
-        $currentUser = $currentUserId ? User::find($currentUserId) : User::first();
+        $currentUser = $request->user();
 
         if ($currentUser && !$currentUser->isSuperAdmin()) {
             return redirect()->back()->with('error', 'Access Denied: Only Super Admin can modify staff accounts.');
@@ -150,7 +148,7 @@ class UserController extends Controller
 
         // Audit Trail
         AuditLog::create([
-            'user_id' => $currentUser?->id ?? 1,
+            'user_id' => $currentUser->id,
             'action' => 'user_updated',
             'entity_type' => 'User',
             'entity_id' => $user->id,
@@ -175,8 +173,7 @@ class UserController extends Controller
      */
     public function destroy(Request $request, User $user): RedirectResponse
     {
-        $currentUserId = $request->session()->get('active_user_id') ?? $request->user()?->id;
-        $currentUser = $currentUserId ? User::find($currentUserId) : User::first();
+        $currentUser = $request->user();
 
         if ($currentUser && !$currentUser->isSuperAdmin()) {
             return redirect()->back()->with('error', 'Access Denied: Only Super Admin can deactivate staff accounts.');
@@ -190,7 +187,7 @@ class UserController extends Controller
         $user->save();
 
         AuditLog::create([
-            'user_id' => $currentUser?->id ?? 1,
+            'user_id' => $currentUser->id,
             'action' => 'user_deactivated',
             'entity_type' => 'User',
             'entity_id' => $user->id,

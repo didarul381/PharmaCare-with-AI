@@ -43,6 +43,7 @@ import {
 import { Prescription, Customer } from '@/types';
 import { formatDate, formatCurrency, cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
+import { confirmDialog } from '@/lib/notify';
 
 interface AiConfig {
     has_openai: boolean;
@@ -224,7 +225,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
     });
 
     const handleDeleteSingle = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this prescription log?')) return;
+        if (!(await confirmDialog({ title: 'Delete this prescription?', message: 'This cannot be undone.', confirmLabel: 'Delete', tone: 'danger' }))) return;
         setIsProcessingAction(true);
         try {
             const res = await fetch(`/prescriptions/${id}`, {
@@ -271,7 +272,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
 
     const handleBulkDelete = async () => {
         if (selectedIds.length === 0) return;
-        if (!confirm(`Are you sure you want to delete ${selectedIds.length} selected prescriptions?`)) return;
+        if (!(await confirmDialog({ title: `Delete ${selectedIds.length} prescriptions?`, message: 'This cannot be undone.', confirmLabel: 'Delete', tone: 'danger' }))) return;
 
         setIsProcessingAction(true);
         try {
@@ -442,14 +443,14 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
             header={
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
-                            <span>AI Prescription Vision & OCR Parser</span>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                            <span>Prescriptions</span>
                             <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">
-                                Vision LLM + Matcher
+                                AI scan
                             </span>
                         </h1>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                            Extract doctor handwriting, match active medicines with confidence scoring, and auto-populate POS carts
+                        <p className="text-sm text-slate-400 mt-1">
+                            Upload a prescription photo — AI reads it, matches medicines in stock and fills the cart.
                         </p>
                     </div>
 
@@ -459,7 +460,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                             className={cn(
                                 "px-3.5 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-2 transition",
                                 showKeyConfig
-                                    ? "bg-cyan-500 text-slate-950 border-cyan-400 font-black shadow-glow-cyan"
+                                    ? "bg-cyan-500 text-ink border-cyan-400 font-black shadow-glow-cyan"
                                     : "bg-slate-900/90 hover:bg-slate-800 text-cyan-300 border-cyan-500/40"
                             )}
                         >
@@ -471,7 +472,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                 </div>
             }
         >
-            <Head title="AI Prescription OCR & Digitizer" />
+            <Head title="Prescriptions" />
 
             {/* Action Toast Alert */}
             {actionToast && (
@@ -487,7 +488,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
             )}
 
             {/* AI Vision API Key Management & Instructions Banner */}
-            <div className="mb-6 rounded-3xl glass-panel border border-cyan-500/30 bg-gradient-to-r from-slate-900/95 via-[#0c1626]/90 to-slate-900/95 p-5 shadow-2xl relative overflow-hidden">
+            <div className="mb-6 rounded-3xl glass-panel border border-cyan-500/30 bg-gradient-to-r from-slate-900/95 via-panel/90 to-slate-900/95 p-5 shadow-2xl relative overflow-hidden">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-slate-800/80">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-glow-cyan">
@@ -499,12 +500,12 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                     AI Vision OCR Engine & API Key Setup
                                 </h3>
                                 {currentAiConfig.has_gemini || currentAiConfig.has_openai ? (
-                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                                         {currentAiConfig.driver_label}
                                     </span>
                                 ) : (
-                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
                                         <Cpu className="w-3 h-3 text-cyan-400" />
                                         Built-in Clinical NLP Mode (Ready to Use)
                                     </span>
@@ -583,7 +584,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                             href="https://aistudio.google.com/app/apikey"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-bold underline"
+                                            className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-bold underline"
                                         >
                                             <span>Open Google AI Studio</span>
                                             <ExternalLink className="w-3 h-3" />
@@ -605,7 +606,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                         </li>
                                     </ol>
 
-                                    <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/20 text-[11px] text-cyan-200">
+                                    <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/20 text-xs text-cyan-200">
                                         <strong>Alternative (.env):</strong> You can also set <code className="bg-slate-900 px-1 py-0.5 rounded text-cyan-300 font-mono">GEMINI_API_KEY=your_key_here</code> in your project's <code className="text-white font-mono">.env</code> file.
                                     </div>
                                 </div>
@@ -633,7 +634,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                             </button>
                                         </div>
                                         {currentAiConfig.gemini_key_masked && (
-                                            <p className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
+                                            <p className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1">
                                                 <CheckCircle2 className="w-3 h-3" /> Active Key: {currentAiConfig.gemini_key_masked}
                                             </p>
                                         )}
@@ -642,7 +643,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                     <button
                                         type="submit"
                                         disabled={isSavingKey || !geminiKeyInput.trim()}
-                                        className="w-full py-2 px-4 rounded-xl text-xs font-black bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 disabled:opacity-50 flex items-center justify-center gap-2 transition shadow-glow-cyan"
+                                        className="w-full py-2 px-4 rounded-xl text-xs font-black bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-ink disabled:opacity-50 flex items-center justify-center gap-2 transition shadow-glow-cyan"
                                     >
                                         <Save className="w-3.5 h-3.5" />
                                         <span>{isSavingKey ? 'Connecting & Saving...' : 'Save & Connect Gemini Key'}</span>
@@ -674,7 +675,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                             href="https://platform.openai.com/api-keys"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-bold underline"
+                                            className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-bold underline"
                                         >
                                             <span>Open OpenAI Platform</span>
                                             <ExternalLink className="w-3 h-3" />
@@ -696,7 +697,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                         </li>
                                     </ol>
 
-                                    <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/20 text-[11px] text-emerald-200">
+                                    <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/20 text-xs text-emerald-200">
                                         <strong>Alternative (.env):</strong> You can also add <code className="bg-slate-900 px-1 py-0.5 rounded text-emerald-300 font-mono">OPENAI_API_KEY=sk-proj-...</code> into your <code className="text-white font-mono">.env</code> file.
                                     </div>
                                 </div>
@@ -724,7 +725,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                             </button>
                                         </div>
                                         {currentAiConfig.openai_key_masked && (
-                                            <p className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
+                                            <p className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1">
                                                 <CheckCircle2 className="w-3 h-3" /> Active Key: {currentAiConfig.openai_key_masked}
                                             </p>
                                         )}
@@ -733,7 +734,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                     <button
                                         type="submit"
                                         disabled={isSavingKey || !openaiKeyInput.trim()}
-                                        className="w-full py-2 px-4 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 disabled:opacity-50 flex items-center justify-center gap-2 transition shadow-glow-emerald"
+                                        className="w-full py-2 px-4 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-ink disabled:opacity-50 flex items-center justify-center gap-2 transition shadow-glow-emerald"
                                     >
                                         <Save className="w-3.5 h-3.5" />
                                         <span>{isSavingKey ? 'Connecting & Saving...' : 'Save & Connect OpenAI Key'}</span>
@@ -782,7 +783,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                         alt="Prescription Document"
                                         className="max-h-56 w-full object-cover rounded-xl border border-slate-700 shadow-lg"
                                     />
-                                    <div className="text-[11px] text-slate-400 flex items-center justify-center gap-1">
+                                    <div className="text-xs text-slate-400 flex items-center justify-center gap-1">
                                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                                         <span>Image Loaded. Click to choose another.</span>
                                     </div>
@@ -793,7 +794,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                         <Scan className="w-6 h-6" />
                                     </div>
                                     <p className="text-xs font-bold text-white">Click or drag prescription scan here</p>
-                                    <p className="text-[11px] text-slate-500">Supports JPG, PNG, WEBP (Handwritten or Printed)</p>
+                                    <p className="text-xs text-slate-500">Supports JPG, PNG, WEBP (Handwritten or Printed)</p>
                                 </div>
                             )}
 
@@ -802,7 +803,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                     <div className="w-10 h-10 border-3 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-glow-cyan" />
                                     <div className="space-y-1">
                                         <p className="text-xs font-bold text-cyan-300">{scanStep}</p>
-                                        <p className="text-[10px] text-slate-400">Processing handwriting, Bengali instructions & catalog alignment</p>
+                                        <p className="text-[11px] text-slate-400">Processing handwriting, Bengali instructions & catalog alignment</p>
                                     </div>
                                 </div>
                             )}
@@ -810,13 +811,13 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                        <span>Model: Clinical-Vision-v2.5 (Bangla/Eng Rx)</span>
-                        <span className="text-emerald-400 font-semibold">OCR Confidence: 98.2%</span>
+                        <span>Reads English & Bangla, handwritten or printed</span>
+                        <span>Always check matches before dispensing</span>
                     </div>
                 </div>
 
                 {/* Right Extraction & Verification Card (7 cols) */}
-                <div className="lg:col-span-7 glass-panel rounded-3xl p-5 border border-slate-800/80 flex flex-col justify-between bg-gradient-to-br from-[#0d1322] to-[#070b13]">
+                <div className="lg:col-span-7 glass-panel rounded-3xl p-5 border border-slate-800/80 flex flex-col justify-between bg-gradient-to-br from-panel to-deep">
                     <div>
                         <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
                             <div>
@@ -824,7 +825,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                     <Sparkles className="w-4 h-4 text-cyan-400" />
                                     Extracted Clinical Entities
                                 </h2>
-                                <p className="text-[11px] text-slate-400">Verified doctor metadata, patient diagnosis, and matched medicines</p>
+                                <p className="text-xs text-slate-400">Verified doctor metadata, patient diagnosis, and matched medicines</p>
                             </div>
 
                             {scannedResult && (
@@ -844,8 +845,8 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                             <span>Doctor Information</span>
                                         </div>
                                         <p className="text-xs font-extrabold text-white">{scannedResult.doctor.name}</p>
-                                        <p className="text-[11px] text-slate-300">{scannedResult.doctor.degrees || scannedResult.doctor.reg_number}</p>
-                                        <p className="text-[10px] text-slate-400 mt-0.5">{scannedResult.doctor.hospital}</p>
+                                        <p className="text-xs text-slate-300">{scannedResult.doctor.degrees || scannedResult.doctor.reg_number}</p>
+                                        <p className="text-[11px] text-slate-400 mt-0.5">{scannedResult.doctor.hospital}</p>
                                     </div>
 
                                     <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
@@ -855,10 +856,10 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <p className="text-xs font-extrabold text-white">{scannedResult.patient.name}</p>
-                                            <span className="text-[10px] text-slate-400 font-mono">ID: {scannedResult.patient.id || 'N/A'}</span>
+                                            <span className="text-[11px] text-slate-400 font-mono">ID: {scannedResult.patient.id || 'N/A'}</span>
                                         </div>
-                                        <p className="text-[11px] text-slate-300">{scannedResult.patient.age}, {scannedResult.patient.gender} | {scannedResult.patient.address || 'Dhaka'}</p>
-                                        <p className="text-[10px] text-emerald-400 mt-1 line-clamp-2 font-medium">
+                                        <p className="text-xs text-slate-300">{scannedResult.patient.age}, {scannedResult.patient.gender} | {scannedResult.patient.address || 'Dhaka'}</p>
+                                        <p className="text-[11px] text-emerald-400 mt-1 line-clamp-2 font-medium">
                                             Diagnosis: {scannedResult.patient.diagnosis}
                                         </p>
                                     </div>
@@ -870,7 +871,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                         <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                                             Prescribed Medications ({scannedResult.matched_items.length})
                                         </h3>
-                                        <span className="text-[11px] text-emerald-400 font-semibold">
+                                        <span className="text-xs text-emerald-400 font-semibold">
                                             Auto-Mapped to Catalog
                                         </span>
                                     </div>
@@ -902,7 +903,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
 
                                                             {/* Match Confidence */}
                                                             <span className={cn(
-                                                                "text-[9px] font-bold px-1.5 py-0.5 rounded-md",
+                                                                "text-[11px] font-bold px-1.5 py-0.5 rounded-md",
                                                                 item.match_confidence >= 95
                                                                     ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                                                                     : "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
@@ -912,21 +913,21 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
 
                                                             {/* Stock Status Pill */}
                                                             {isAvailable ? (
-                                                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                                                                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                                                                     <Check className="w-2.5 h-2.5" /> In Stock: {stockCount} {item.medicine.unit_name || 'Units'}
                                                                 </span>
                                                             ) : isMatched ? (
-                                                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
+                                                                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
                                                                     <AlertTriangle className="w-2.5 h-2.5" /> Out of Stock (0)
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                                                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
                                                                     <AlertCircle className="w-2.5 h-2.5" /> Not in Catalog
                                                                 </span>
                                                             )}
                                                         </div>
 
-                                                        <div className="text-[11px] text-slate-400 mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                                                        <div className="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
                                                             <span className="text-cyan-300 font-medium">Dose: {item.frequency || '1+0+1'}</span>
                                                             {item.dosage && <span className="text-slate-300">({item.dosage})</span>}
                                                             {item.instructions && <span className="text-slate-400 italic">"{item.instructions}"</span>}
@@ -963,7 +964,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                                             )}>
                                                                 {formatCurrency(unitPrice * item.quantity)}
                                                             </span>
-                                                            <span className="text-[10px] text-slate-400">
+                                                            <span className="text-[11px] text-slate-400">
                                                                 {unitPrice > 0 ? `${formatCurrency(unitPrice)}/${item.medicine?.unit_name || 'unit'}` : 'N/A'}
                                                             </span>
                                                         </div>
@@ -986,7 +987,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
 
                                 {/* Advices & Followup */}
                                 {scannedResult.advices && scannedResult.advices.length > 0 && (
-                                    <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-300">
+                                    <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800 text-xs text-slate-300">
                                         <span className="font-bold text-cyan-300 block mb-1">Doctor's Advices:</span>
                                         <ul className="list-disc list-inside space-y-0.5 text-slate-400">
                                             {scannedResult.advices.map((adv: string, i: number) => (
@@ -1005,7 +1006,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                 <div className="p-3 rounded-xl bg-slate-950/80 border border-red-900/50 text-xs font-mono text-red-300 break-words">
                                     {scanError}
                                 </div>
-                                <p className="text-[11px] text-slate-400">
+                                <p className="text-xs text-slate-400">
                                     💡 <strong>Troubleshooting Tips:</strong> Verify your Google Gemini or OpenAI API Key in the setup banner above, or ensure your prescription handwriting is clear and well-lit.
                                 </p>
                             </div>
@@ -1013,7 +1014,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                             <div className="h-64 flex flex-col items-center justify-center text-center text-slate-500">
                                 <FileText className="w-12 h-12 stroke-[1.2] text-slate-700 mb-2" />
                                 <p className="text-xs font-semibold text-slate-400">No Active Extraction</p>
-                                <p className="text-[11px] text-slate-600">Upload a prescription image to trigger live AI Vision extraction</p>
+                                <p className="text-xs text-slate-600">Upload a prescription image to trigger live AI Vision extraction</p>
                             </div>
                         )}
                     </div>
@@ -1031,9 +1032,9 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
 
                             <button
                                 onClick={handlePushToPos}
-                                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-glow-emerald flex items-center justify-center gap-2 hover:from-emerald-400 hover:to-teal-400 transition transform hover:scale-[1.02]"
+                                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-ink shadow-glow-emerald flex items-center justify-center gap-2 hover:from-emerald-400 hover:to-teal-400 transition transform hover:scale-[1.02]"
                             >
-                                <ShoppingCart className="w-4 h-4 text-slate-950" />
+                                <ShoppingCart className="w-4 h-4 text-ink" />
                                 <span>
                                     Push {scannedResult.matched_items.filter((it: any) => it.medicine && (it.medicine.total_stock || 0) > 0).length} In-Stock Items to POS Cart
                                 </span>
@@ -1044,7 +1045,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
             </div>
 
             {/* Prescriptions History Archive & Action Center (User Red Box) */}
-            <div className="glass-panel rounded-3xl p-6 border border-slate-800/90 shadow-2xl bg-gradient-to-b from-slate-900/90 to-[#080d17]">
+            <div className="glass-panel rounded-3xl p-6 border border-slate-800/90 shadow-2xl bg-gradient-to-b from-slate-900/90 to-deep">
                 {/* Header & Control Bar */}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-800">
                     <div className="flex items-center gap-3">
@@ -1056,7 +1057,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                 <h2 className="text-base font-black text-white tracking-tight">
                                     Prescriptions Registry & Dispensing Log
                                 </h2>
-                                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                                     {rxList.length} Total Logs
                                 </span>
                             </div>
@@ -1137,7 +1138,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                 <div className="overflow-x-auto rounded-2xl border border-slate-800/80 bg-slate-950/40">
                     <table className="w-full text-left text-xs">
                         <thead>
-                            <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase text-[10px] font-black tracking-wider">
+                            <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase text-[11px] font-black tracking-wider">
                                 <th className="py-3 px-3.5 w-10">
                                     <input
                                         type="checkbox"
@@ -1188,7 +1189,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                                 <span className="font-bold text-white block text-xs">
                                                     {rx.doctor_name || 'General Practitioner'}
                                                 </span>
-                                                <span className="text-[11px] text-slate-400 block truncate max-w-[220px]">
+                                                <span className="text-xs text-slate-400 block truncate max-w-[220px]">
                                                     {rx.hospital_name || 'Medical Clinic'}
                                                 </span>
                                             </td>
@@ -1197,12 +1198,12 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                                 <span className="font-semibold text-slate-200 block text-xs">
                                                     {rx.customer?.name || (rx.ai_extracted_data as any)?.patient?.name || 'Walk-in Patient'}
                                                 </span>
-                                                <span className="text-[10px] text-slate-500 font-mono">
+                                                <span className="text-[11px] text-slate-500 font-mono">
                                                     {(rx.ai_extracted_data as any)?.patient?.age ? `${(rx.ai_extracted_data as any).patient.age}, ${(rx.ai_extracted_data as any).patient.gender || ''}` : 'Patient ID: ' + rx.id}
                                                 </span>
                                             </td>
 
-                                            <td className="py-3 px-4 text-slate-400 text-[11px]">
+                                            <td className="py-3 px-4 text-slate-400 text-xs">
                                                 {formatDate(rx.created_at)}
                                             </td>
 
@@ -1220,7 +1221,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                                     onClick={() => handleToggleStatus(rx)}
                                                     title="Click to toggle status"
                                                     className={cn(
-                                                        "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase transition flex items-center gap-1 cursor-pointer hover:opacity-80",
+                                                        "px-2.5 py-1 rounded-full text-[11px] font-bold uppercase transition flex items-center gap-1 cursor-pointer hover:opacity-80",
                                                         rx.status === 'dispensed'
                                                             ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                                                             : rx.status === 'verified'
@@ -1275,7 +1276,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                     <td colSpan={8} className="py-12 text-center text-slate-500">
                                         <FileText className="w-10 h-10 mx-auto stroke-[1.2] text-slate-700 mb-2" />
                                         <p className="text-xs font-semibold text-slate-400">No prescriptions found</p>
-                                        <p className="text-[11px] text-slate-600 mt-0.5">
+                                        <p className="text-xs text-slate-600 mt-0.5">
                                             {searchQuery ? 'Try adjusting your search filter' : 'Scanned prescription records will be cataloged here'}
                                         </p>
                                     </td>
@@ -1297,7 +1298,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                         Prescription #{viewRxModal.prescription_number}
                                     </h3>
                                     <span className={cn(
-                                        "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                                        "px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase",
                                         viewRxModal.status === 'dispensed'
                                             ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                                             : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
@@ -1325,9 +1326,9 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                     <Stethoscope className="w-3.5 h-3.5" /> Doctor Info
                                 </span>
                                 <p className="text-xs font-bold text-white">{viewRxModal.doctor_name || 'Medical Practitioner'}</p>
-                                <p className="text-[11px] text-slate-400">{viewRxModal.hospital_name || 'Popular Medical College'}</p>
+                                <p className="text-xs text-slate-400">{viewRxModal.hospital_name || 'Popular Medical College'}</p>
                                 {viewRxModal.doctor_reg_number && (
-                                    <p className="text-[10px] text-cyan-400 font-mono">Reg: {viewRxModal.doctor_reg_number}</p>
+                                    <p className="text-[11px] text-cyan-400 font-mono">Reg: {viewRxModal.doctor_reg_number}</p>
                                 )}
                             </div>
 
@@ -1338,11 +1339,11 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                 <p className="text-xs font-bold text-white">
                                     {viewRxModal.customer?.name || (viewRxModal.ai_extracted_data as any)?.patient?.name || 'Walk-in Patient'}
                                 </p>
-                                <p className="text-[11px] text-slate-400">
+                                <p className="text-xs text-slate-400">
                                     {(viewRxModal.ai_extracted_data as any)?.patient?.address || 'Matuail, Dhaka'}
                                 </p>
                                 {(viewRxModal.ai_extracted_data as any)?.patient?.diagnosis && (
-                                    <p className="text-[10px] text-emerald-400">
+                                    <p className="text-[11px] text-emerald-400">
                                         Diagnosis: {(viewRxModal.ai_extracted_data as any).patient.diagnosis}
                                     </p>
                                 )}
@@ -1380,21 +1381,21 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                                         {med?.name || item.drug_name_raw}
                                                     </p>
                                                     {isAvailable ? (
-                                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                                                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                                                             <Check className="w-2.5 h-2.5" /> In Stock ({stockCount})
                                                         </span>
                                                     ) : isMatched ? (
-                                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
+                                                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
                                                             <AlertTriangle className="w-2.5 h-2.5" /> Out of Stock
                                                         </span>
                                                     ) : (
-                                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
                                                             <AlertCircle className="w-2.5 h-2.5" /> Unmapped
                                                         </span>
                                                     )}
                                                 </div>
 
-                                                <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                                <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
                                                     <span className="text-cyan-300 font-medium">Dose: {item.frequency || '1+0+1'}</span>
                                                     <span>Qty: {item.quantity || 1} units</span>
                                                     {item.instructions && <span className="text-slate-500 truncate">{item.instructions}</span>}
@@ -1408,7 +1409,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                                 )}>
                                                     {formatCurrency(unitPrice * (item.quantity || 1))}
                                                 </span>
-                                                <span className="text-[10px] text-slate-400">
+                                                <span className="text-[11px] text-slate-400">
                                                     Stock: {stockCount}
                                                 </span>
                                             </div>
@@ -1441,7 +1442,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                         setViewRxModal(null);
                                         handlePushSavedRxToPos(current);
                                     }}
-                                    className="px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-glow-emerald flex items-center gap-1.5 hover:from-emerald-400 hover:to-teal-400 transition"
+                                    className="px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-ink shadow-glow-emerald flex items-center gap-1.5 hover:from-emerald-400 hover:to-teal-400 transition"
                                 >
                                     <ShoppingCart className="w-3.5 h-3.5" />
                                     <span>Push to POS Cart & Dispense</span>
@@ -1480,7 +1481,7 @@ export default function PrescriptionsIndex({ prescriptions, customers, ai_config
                                 type="button"
                                 onClick={handleClearAll}
                                 disabled={isProcessingAction}
-                                className="px-5 py-2 rounded-xl text-xs font-black bg-red-500 hover:bg-red-400 text-white transition shadow-lg shadow-red-500/20"
+                                className="px-5 py-2 rounded-xl text-xs font-black bg-red-500 hover:bg-red-400 text-paper transition shadow-lg shadow-red-500/20"
                             >
                                 {isProcessingAction ? 'Clearing...' : 'Yes, Clear All Logs'}
                             </button>

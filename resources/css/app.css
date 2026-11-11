@@ -1,80 +1,109 @@
+/* theme.css must be imported before Tailwind layers */
+@import './theme.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-    :root {
-        --background: 222.2 84% 4.9%;
-        --foreground: 210 40% 98%;
-        --card: 222.2 84% 4.9%;
-        --card-foreground: 210 40% 98%;
-        --popover: 222.2 84% 4.9%;
-        --popover-foreground: 210 40% 98%;
-        --primary: 160 84% 39%;
-        --primary-foreground: 222.2 47.4% 11.2%;
-        --secondary: 217.2 32.6% 17.5%;
-        --secondary-foreground: 210 40% 98%;
-        --muted: 217.2 32.6% 17.5%;
-        --muted-foreground: 215 20.2% 65.1%;
-        --accent: 217.2 32.6% 17.5%;
-        --accent-foreground: 210 40% 98%;
-        --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 210 40% 98%;
-        --border: 217.2 32.6% 17.5%;
-        --input: 217.2 32.6% 17.5%;
-        --ring: 160 84% 39%;
+    html {
+        -webkit-text-size-adjust: 100%;
     }
 
     body {
-        @apply bg-[#0b0f19] text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white;
+        @apply bg-canvas text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-paper;
         font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     }
+
+    /* Visible keyboard focus everywhere (mouse clicks stay clean). */
+    :focus-visible {
+        outline: 2px solid rgb(var(--emerald-500));
+        outline-offset: 2px;
+    }
+
+    /* Comfortable touch targets for form fields on phones & tablets. */
+    @media (pointer: coarse) {
+        input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+        select,
+        textarea {
+            min-height: 44px;
+            font-size: max(16px, 1em); /* stops iOS zooming into fields */
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+}
+
+/* Modal backdrops: softer in light mode. */
+html:not(.dark) .bg-black\/75,
+html:not(.dark) .bg-black\/80,
+html:not(.dark) .bg-black\/85 {
+    background-color: rgb(var(--backdrop) / var(--backdrop-alpha));
+}
+
+/* Light mode: give bordered cards a soft lift so they separate from the canvas. */
+html:not(.dark) .rounded-2xl.border,
+html:not(.dark) .rounded-3xl.border,
+html:not(.dark) .rounded-xl.border.shadow-lg {
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.05);
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #0f172a;
+    background: rgb(var(--slate-950));
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #334155;
+    background: rgb(var(--slate-700));
     border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
+    background: rgb(var(--slate-600));
 }
 
-/* Clinical Glassmorphic Cards */
+/* Glass cards */
 .glass-panel {
-    background: rgba(15, 23, 42, 0.75);
+    background: rgb(var(--slate-900) / 0.75);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgb(var(--white) / 0.08);
 }
 
 .glass-panel-elevated {
-    background: rgba(30, 41, 59, 0.7);
+    background: rgb(var(--slate-800) / 0.7);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgb(var(--white) / 0.12);
+}
+
+html:not(.dark) .glass-panel,
+html:not(.dark) .glass-panel-elevated {
+    box-shadow: var(--shadow-glass);
 }
 
 .glass-card-interactive {
-    background: rgba(15, 23, 42, 0.6);
+    background: rgb(var(--slate-900) / 0.6);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid rgb(var(--white) / 0.07);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card-interactive:hover {
-    background: rgba(30, 41, 59, 0.8);
-    border-color: rgba(52, 211, 153, 0.4);
+    background: rgb(var(--slate-800) / 0.8);
+    border-color: rgb(var(--emerald-400) / 0.4);
     transform: translateY(-2px);
     box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.15);
 }

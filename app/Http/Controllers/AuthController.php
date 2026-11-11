@@ -2,64 +2,56 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\AuditLog;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Http\RedirectResponse;
 
 class AuthController extends Controller
 {
     /**
-     * Show the login page.
+     * Show the login page. One-click demo accounts are only listed in demo mode.
      */
-    public function showLogin(): Response|RedirectResponse
+    public function showLogin(): Response
     {
+        $demoUsers = [];
+
+        if (config('pharmacare.demo_mode')) {
+            $descriptions = [
+                User::ROLE_SUPER_ADMIN => 'Full access: staff, settings, reports',
+                User::ROLE_PHARMACIST => 'Prescriptions, AI checks, POS',
+                User::ROLE_CASHIER => 'Fast checkout & receipts',
+                User::ROLE_INVENTORY_MANAGER => 'Stock, batches & suppliers',
+            ];
+
+            $demoUsers = User::query()
+                ->where('is_active', true)
+                ->whereIn('role', array_keys($descriptions))
+                ->orderBy('id')
+                ->get()
+                ->unique('role')
+                ->sortBy(fn (User $u) => array_search($u->role, array_keys($descriptions), true))
+                ->map(fn (User $u) => [
+                    'role' => $u->role,
+                    'title' => User::getRoles()[$u->role],
+                    'email' => $u->email,
+                    'password' => config('pharmacare.demo_password'),
+                    'desc' => $descriptions[$u->role],
+                ])
+                ->values();
+        }
+
         return Inertia::render('Auth/Login', [
-            'roles' => User::getRoles(),
-            'demoUsers' => [
-                [
-                    'role' => 'super_admin',
-                    'title' => 'Super Admin',
-                    'email' => 'admin@pharmacare.ai',
-                    'password' => 'password',
-                    'desc' => 'Full unconstrained system control',
-                    'color' => 'from-purple-600 to-indigo-600',
-                ],
-                [
-                    'role' => 'pharmacist',
-                    'title' => 'Lead Pharmacist',
-                    'email' => 'pharmacist@pharmacare.ai',
-                    'password' => 'password',
-                    'desc' => 'Rx review, AI OCR & DDI shield',
-                    'color' => 'from-emerald-600 to-teal-600',
-                ],
-                [
-                    'role' => 'cashier',
-                    'title' => 'Senior Cashier',
-                    'email' => 'cashier@pharmacare.ai',
-                    'password' => 'password',
-                    'desc' => 'Fast POS checkout & thermal receipts',
-                    'color' => 'from-cyan-600 to-blue-600',
-                ],
-                [
-                    'role' => 'inventory_manager',
-                    'title' => 'Inventory Manager',
-                    'email' => 'inventory@pharmacare.ai',
-                    'password' => 'password',
-                    'desc' => 'FEFO batches & stock reconciliation',
-                    'color' => 'from-amber-600 to-orange-600',
-                ],
-            ],
+            'demoUsers' => $demoUsers,
         ]);
     }
 
     /**
-     * Handle authentication attempt.
+     * Handle an authentication attempt.
      */
     public function login(Request $request): RedirectResponse
     {
@@ -68,62 +60,38 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $remember = $request->boolean('remember', false);
-
-        if (Auth::attempt($credentials, $remember)) {
-            $request->session()->regenerate();
-            $user = Auth::user();
-            $request->session()->put('active_user_id', $user->id);
-
-            // Regulatory Audit Trail
-            AuditLog::create([
-                'user_id' => $user->id,
-                'action' => 'auth_login',
-                'entity_type' => 'User',
-                'entity_id' => $user->id,
-                'old_values' => null,
-                'new_values' => [
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'name' => $user->name,
-                ],
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'created_at' => now(),
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+            throw ValidationException::withMessages([
+                'email' => 'Email or password is incorrect.',
             ]);
-
-            return redirect()->intended('/')->with('success', "Welcome back, {$user->name}!");
         }
 
-        // Fallback check if user exists with plain match during demo mode
-        $user = User::where('email', $credentials['email'])->first();
-        if ($user && ($credentials['password'] === 'password' || Hash::check($credentials['password'], $user->password))) {
-            Auth::login($user, $remember);
-            $request->session()->regenerate();
-            $request->session()->put('active_user_id', $user->id);
+        /** @var User $user */
+        $user = Auth::user();
 
-            AuditLog::create([
-                'user_id' => $user->id,
-                'action' => 'auth_login',
-                'entity_type' => 'User',
-                'entity_id' => $user->id,
-                'old_values' => null,
-                'new_values' => [
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'name' => $user->name,
-                ],
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'created_at' => now(),
+        if (! $user->is_active) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'This account has been deactivated. Please contact your administrator.',
             ]);
-
-            return redirect()->intended('/')->with('success', "Welcome back, {$user->name}!");
         }
 
-        throw ValidationException::withMessages([
-            'email' => 'The provided credentials do not match our pharmaceutical staff records.',
+        $request->session()->regenerate();
+
+        AuditLog::create([
+            'user_id' => $user->id,
+            'action' => 'auth_login',
+            'entity_type' => 'User',
+            'entity_id' => $user->id,
+            'old_values' => null,
+            'new_values' => ['email' => $user->email, 'role' => $user->role, 'name' => $user->name],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
         ]);
+
+        return redirect()->intended($user->homePath())->with('success', "Welcome back, {$user->name}!");
     }
 
     /**
@@ -131,7 +99,7 @@ class AuthController extends Controller
      */
     public function logout(Request $request): RedirectResponse
     {
-        $user = Auth::user() ?? ($request->session()->get('active_user_id') ? User::find($request->session()->get('active_user_id')) : null);
+        $user = $request->user();
 
         if ($user) {
             AuditLog::create([
@@ -151,6 +119,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/login')->with('info', 'You have been securely logged out.');
+        return redirect('/login')->with('info', 'You have been signed out.');
     }
 }

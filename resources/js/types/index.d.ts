@@ -5,6 +5,7 @@ export interface User {
     role: 'super_admin' | 'pharmacist' | 'cashier' | 'inventory_manager';
     phone?: string;
     avatar?: string;
+    is_active?: boolean;
 }
 
 export interface Category {
@@ -181,6 +182,8 @@ export interface Sale {
     customer?: Customer;
     user?: User;
     items?: SaleItem[];
+    payments?: SalePayment[];
+    prescription?: Prescription;
     created_at: string;
 }
 
@@ -226,9 +229,15 @@ export interface AuditLog {
 }
 
 export interface PageProps<T extends Record<string, unknown> = Record<string, unknown>> {
+    [key: string]: unknown;
     auth: {
         user: User | null;
-        available_users?: User[];
+        /** Server-computed module access for the signed-in user (config/pharmacare.php). */
+        can?: Partial<Record<
+            'dashboard' | 'inventory' | 'pos' | 'invoices' | 'reports' | 'clinical-reference'
+            | 'prescriptions' | 'ai-insights' | 'suppliers' | 'audit-logs' | 'users' | 'settings',
+            boolean
+        >>;
         roles?: Record<string, string>;
     };
     flash: {
@@ -239,7 +248,92 @@ export interface PageProps<T extends Record<string, unknown> = Record<string, un
     };
     app_info: {
         name: string;
+        tagline?: string | null;
         version: string;
         currency_symbol: string;
+        demo_mode?: boolean;
     };
+}
+
+export interface SalePayment {
+    id?: number;
+    sale_id?: number;
+    payment_method: string;
+    amount: number | string;
+    transaction_reference?: string | null;
+    card_last_four?: string | null;
+    created_at?: string;
+}
+
+export interface StoreSetting {
+    id?: number;
+    store_name: string;
+    store_tagline?: string | null;
+    address?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    drug_license_no?: string | null;
+    vat_reg_no?: string | null;
+    receipt_footer?: string | null;
+    default_tax_rate: number | string;
+    currency_symbol: string;
+    thermal_printer_width?: string;
+    show_tax_on_receipt?: boolean;
+    show_license_on_receipt?: boolean;
+}
+
+export interface Supplier {
+    id: number;
+    name: string;
+    company_code: string;
+    contact_person?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    tax_registration_number?: string | null;
+    total_payable: number | string;
+    total_paid: number | string;
+    is_active: boolean;
+}
+
+export interface PurchaseOrderItem {
+    id?: number;
+    purchase_order_id?: number;
+    medicine_id: number;
+    quantity_ordered: number;
+    quantity_received?: number;
+    unit_cost: number | string;
+    total_cost?: number | string;
+    medicine?: Medicine;
+}
+
+export interface PurchaseOrder {
+    id: number;
+    po_number: string;
+    supplier_id: number;
+    user_id: number;
+    order_date: string;
+    expected_delivery_date?: string | null;
+    status: 'draft' | 'pending' | 'approved' | 'received' | 'cancelled';
+    total_amount: number | string;
+    paid_amount: number | string;
+    notes?: string | null;
+    supplier?: Supplier;
+    items?: PurchaseOrderItem[];
+    created_at?: string;
+}
+
+export interface GoodsReceiptNote {
+    id: number;
+    grn_number: string;
+    purchase_order_id?: number | null;
+    supplier_id: number;
+    received_by_user_id: number;
+    supplier_invoice_number?: string | null;
+    received_date: string;
+    total_amount: number | string;
+    remarks?: string | null;
+    supplier?: Supplier;
+    purchase_order?: PurchaseOrder;
+    created_at?: string;
 }

@@ -40,15 +40,16 @@ class StoreSetting extends Model
         $setting = self::first();
 
         if (!$setting) {
+            // Neutral defaults for a fresh installation — the owner fills these in under Settings.
             $setting = self::create([
-                'store_name' => 'PharmaCare AI Rx',
-                'store_tagline' => 'Enterprise Pharmacy & Healthcare',
-                'address' => 'House #12, Road #4, Dhanmondi, Dhaka-1205',
-                'phone' => '+880 2 8833047 | +880 1711-000000',
-                'email' => 'contact@pharmacare.com',
-                'drug_license_no' => 'FDA/DGDA Lic: 89410',
-                'vat_reg_no' => 'BIN: 002948192-0101',
-                'receipt_footer' => 'Thank you for choosing PharmaCare AI! Quick healing.',
+                'store_name' => config('app.name') && config('app.name') !== 'Laravel' ? config('app.name') : 'My Pharmacy',
+                'store_tagline' => null,
+                'address' => null,
+                'phone' => null,
+                'email' => null,
+                'drug_license_no' => null,
+                'vat_reg_no' => null,
+                'receipt_footer' => 'Thank you! Get well soon.',
                 'default_tax_rate' => 5.00,
                 'currency_symbol' => '৳',
                 'thermal_printer_width' => '80mm',

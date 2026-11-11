@@ -2,64 +2,53 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\AuditLog;
-use Illuminate\Http\Request;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class RoleController extends Controller
 {
     /**
-     * Switch the currently active staff/role in session.
+     * Demo-only: sign in as the first active account of another role so
+     * visitors can explore each staff experience. Disabled (404) unless
+     * PHARMACARE_DEMO_MODE=true.
      */
-    public function switchRole(Request $request): RedirectResponse|JsonResponse
+    public function switchRole(Request $request): RedirectResponse
     {
+        abort_unless(config('pharmacare.demo_mode'), 404);
+
         $validated = $request->validate([
-            'role' => 'required|string|in:super_admin,pharmacist,cashier,inventory_manager',
+            'role' => 'required|string|in:'.implode(',', array_keys(User::getRoles())),
         ]);
 
-        $user = User::where('role', $validated['role'])->first();
+        $user = User::where('role', $validated['role'])->where('is_active', true)->first();
 
-        if (!$user) {
-            $user = User::firstOrCreate(
-                ['email' => $validated['role'] . '@pharmacare.ai'],
-                [
-                    'name' => User::getRoles()[$validated['role']] ?? ucfirst($validated['role']),
-                    'password' => \Illuminate\Support\Facades\Hash::make('password'),
-                    'role' => $validated['role'],
-                    'is_active' => true,
-                ]
-            );
+        if (! $user) {
+            return back()->with('error', 'No active demo account exists for that role.');
         }
 
-        $oldUser = $request->session()->get('active_user_id') 
-            ? User::find($request->session()->get('active_user_id')) 
-            : null;
+        $previous = $request->user();
 
-        $request->session()->put('active_user_id', $user->id);
+        Auth::login($user);
+        $request->session()->regenerate();
 
-        // Audit log role switch
         AuditLog::create([
             'user_id' => $user->id,
             'action' => 'role_switched',
             'entity_type' => 'User',
             'entity_id' => $user->id,
-            'old_values' => ['previous_user' => $oldUser?->name, 'previous_role' => $oldUser?->role],
+            'old_values' => ['previous_user' => $previous?->name, 'previous_role' => $previous?->role],
             'new_values' => ['active_user' => $user->name, 'active_role' => $user->role],
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'created_at' => now(),
         ]);
 
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'user' => $user,
-                'message' => "Switched active role to " . (User::getRoles()[$user->role] ?? $user->role),
-            ]);
-        }
+        $label = User::getRoles()[$user->role] ?? $user->role;
 
-        return redirect()->back()->with('success', "Active role switched to " . (User::getRoles()[$user->role] ?? $user->role));
+        // The new role may not be allowed on the current page — land on its first allowed module.
+        return redirect($user->homePath())->with('success', "Now viewing as {$label}.");
     }
 }

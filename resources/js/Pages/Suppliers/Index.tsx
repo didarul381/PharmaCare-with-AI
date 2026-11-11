@@ -114,17 +114,17 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
             header={
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
-                            <span>Suppliers & Purchase Order (PO)</span>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2">
+                            <span>Suppliers & Purchases</span>
                         </h1>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                            Vendor ledgers, procurement orders, and Goods Receipt Notes (GRN) batch generation
+                        <p className="text-sm text-slate-400 mt-1">
+                            Suppliers, purchase orders and receiving new stock.
                         </p>
                     </div>
 
                     <button
                         onClick={() => setShowPoModal(true)}
-                        className="px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-glow-emerald flex items-center gap-1.5 transition self-start sm:self-auto"
+                        className="px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-ink shadow-glow-emerald flex items-center gap-1.5 transition self-start sm:self-auto"
                     >
                         <Plus className="w-3.5 h-3.5" />
                         <span>Create Purchase Order</span>
@@ -132,7 +132,7 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                 </div>
             }
         >
-            <Head title="Suppliers & Purchase Orders" />
+            <Head title="Suppliers & Purchases" />
 
             {/* Suppliers Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
@@ -141,22 +141,22 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                         <div>
                             <div className="flex items-center justify-between mb-2">
                                 <span className="font-mono text-xs text-cyan-300 font-bold">{s.company_code}</span>
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
+                                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
                                     Active Vendor
                                 </span>
                             </div>
                             <h3 className="font-bold text-white text-sm">{s.name}</h3>
-                            <p className="text-[11px] text-slate-400">{s.contact_person} | {s.phone}</p>
-                            <p className="text-[11px] text-slate-500 mt-1 truncate">{s.address}</p>
+                            <p className="text-xs text-slate-400">{s.contact_person} | {s.phone}</p>
+                            <p className="text-xs text-slate-500 mt-1 truncate">{s.address}</p>
                         </div>
 
                         <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
                             <div>
-                                <span className="text-[10px] text-slate-500 block">Total Payable</span>
+                                <span className="text-[11px] text-slate-500 block">Total Payable</span>
                                 <span className="font-bold text-rose-400">{formatCurrency(s.total_payable)}</span>
                             </div>
                             <div className="text-right">
-                                <span className="text-[10px] text-slate-500 block">Total Paid</span>
+                                <span className="text-[11px] text-slate-500 block">Total Paid</span>
                                 <span className="font-bold text-emerald-400">{formatCurrency(s.total_paid)}</span>
                             </div>
                         </div>
@@ -176,7 +176,7 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                         <thead>
-                            <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase text-[10px] font-bold">
+                            <tr className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase text-[11px] font-bold">
                                 <th className="py-3 px-4">PO Number</th>
                                 <th className="py-3 px-4">Supplier</th>
                                 <th className="py-3 px-4">Order Date</th>
@@ -194,7 +194,7 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                                     <td className="py-3 px-4 font-bold text-emerald-400">{formatCurrency(po.total_amount)}</td>
                                     <td className="py-3 px-4">
                                         <span className={cn(
-                                            "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase",
+                                            "px-2.5 py-1 rounded-full text-[11px] font-bold uppercase",
                                             po.status === 'received'
                                                 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                                                 : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
@@ -206,7 +206,7 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                                         {po.status !== 'received' && (
                                             <button
                                                 onClick={() => openGrnForPo(po)}
-                                                className="px-3 py-1 rounded-lg text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition"
+                                                className="px-3 py-1 rounded-lg text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-ink transition"
                                             >
                                                 Receive GRN
                                             </button>
@@ -319,7 +319,7 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950"
+                                    className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-ink"
                                 >
                                     Submit Purchase Order
                                 </button>
@@ -362,7 +362,7 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                                 {grnForm.batches.map((b, idx) => (
                                     <div key={idx} className="p-3 rounded-xl bg-slate-900 border border-slate-800 grid grid-cols-2 gap-2 text-xs">
                                         <div>
-                                            <span className="text-slate-400 block text-[10px]">Batch #</span>
+                                            <span className="text-slate-400 block text-[11px]">Batch #</span>
                                             <input
                                                 type="text"
                                                 value={b.batch_number}
@@ -375,7 +375,7 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                                             />
                                         </div>
                                         <div>
-                                            <span className="text-slate-400 block text-[10px]">Expiry Date</span>
+                                            <span className="text-slate-400 block text-[11px]">Expiry Date</span>
                                             <input
                                                 type="date"
                                                 value={b.expiry_date}
@@ -401,7 +401,7 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950"
+                                    className="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-ink"
                                 >
                                     Verify & Add Batches to Vault
                                 </button>
