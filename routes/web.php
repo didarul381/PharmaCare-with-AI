@@ -5,6 +5,7 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClinicalReferenceController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DrugCatalogController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PosController;
@@ -88,6 +89,13 @@ Route::middleware(['auth', 'active'])->group(function () {
     // Inventory
     Route::prefix('inventory')->name('inventory.')->middleware('module:inventory')->group(function () {
         Route::get('/', [InventoryController::class, 'index'])->name('index');
+
+        // National DGDA drug catalogue → bulk add medicines
+        Route::get('/catalog', [DrugCatalogController::class, 'index'])->name('catalog.index');
+        Route::get('/catalog/search', [DrugCatalogController::class, 'search'])->name('catalog.search');
+        Route::post('/catalog/sync', [DrugCatalogController::class, 'sync'])->middleware('demo.block')->name('catalog.sync');
+        Route::post('/catalog/add', [DrugCatalogController::class, 'add'])->name('catalog.add');
+
         Route::post('/medicines', [InventoryController::class, 'storeMedicine'])->name('medicines.store');
         Route::delete('/medicines/{medicine}', [InventoryController::class, 'destroyMedicine'])->middleware('demo.block')->name('medicines.destroy');
         Route::post('/batches', [InventoryController::class, 'storeBatch'])->name('batches.store');

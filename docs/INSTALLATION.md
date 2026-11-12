@@ -131,7 +131,7 @@ For SQLite, create the empty file first: `touch database/database.sqlite` (Windo
    | Cashier | POS, invoices, medicine guide |
    | Inventory Manager | Inventory, suppliers, reports, activity log |
 
-3. **Inventory** → *Add Medicine*, then *Add Batch* with the expiry date, quantity and prices. The POS shows only medicines with stock.
+3. **Inventory** → **Import from DGDA** → *Download now* to load the national medicine list (~39,000 products, ~5 minutes), then add the medicines you sell in bulk. Or from the server: `php artisan pharmacare:sync-dgda`. Then add stock (**+ Stock**) with expiry, quantity and prices — the POS shows only medicines with stock.
 4. *(Optional)* **AI prescription scanning** → add a Google Gemini or OpenAI key in `.env` (`GEMINI_API_KEY` / `OPENAI_API_KEY`) or from the Prescriptions screen.
 
 ### Optional settings (`.env`)
@@ -142,6 +142,7 @@ For SQLite, create the empty file first: `touch database/database.sqlite` (Windo
 | `GEMINI_API_KEY` / `OPENAI_API_KEY` | – | AI prescription scanning |
 | `PHARMACARE_MEDEX_LOOKUP` | `false` | Also search medex.com.bd in the Medicine Guide (third-party site; check its terms first) |
 | `PHARMACARE_DEMO_MODE` | `false` | **Public showcase only** — see [LIVE-DEMO.md](LIVE-DEMO.md) |
+| `PHARMACARE_DGDA_CATALOG_URL` | DGHS terminology server | Source of the DGDA medicine catalogue (refreshed monthly by the scheduler once downloaded) |
 
 ---
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import {
     Boxes,
@@ -19,14 +19,30 @@ import {
     Building2,
     ChevronDown,
     Sparkles,
-    Trash2
+    Trash2,
+    Library,
+    PackagePlus,
 } from 'lucide-react';
 import { Medicine, Batch, Category, GenericName, Manufacturer, DosageForm, Unit } from '@/types';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
 import { confirmDialog } from '@/lib/notify';
 
+interface Pagination {
+    current_page: number;
+    last_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+    prev_url: string | null;
+    next_url: string | null;
+}
+
 interface Props {
     medicines: Medicine[];
+    medicines_pagination?: Pagination;
+    batches_pagination?: Pagination;
+    medicine_options?: { id: number; name: string; sku: string }[];
+    catalog_available?: boolean;
     batches: Batch[];
     categories: Category[];
     generics: GenericName[];
@@ -46,11 +62,16 @@ interface Props {
         generic_id?: string;
         manufacturer_id?: string;
         filter_expiry?: string;
+        filter_stock?: string;
     };
 }
 
 export default function InventoryIndex({
     medicines,
+    medicines_pagination,
+    batches_pagination,
+    medicine_options = [],
+    catalog_available = false,
     batches,
     categories,
     generics,
@@ -65,6 +86,7 @@ export default function InventoryIndex({
     const [selectedCategory, setSelectedCategory] = useState(filters.category_id || '');
     const [selectedGeneric, setSelectedGeneric] = useState(filters.generic_id || '');
     const [selectedExpiry, setSelectedExpiry] = useState(filters.filter_expiry || '');
+    const [selectedStock, setSelectedStock] = useState(filters.filter_stock || '');
 
     // Master data lists with dynamic quick-add support
     const [genericsList, setGenericsList] = useState<GenericName[]>(generics);
@@ -280,6 +302,7 @@ export default function InventoryIndex({
             category_id: selectedCategory,
             generic_id: selectedGeneric,
             filter_expiry: selectedExpiry,
+            filter_stock: selectedStock,
             ...newFilters,
         }, { preserveState: true, preserveScroll: true });
     };
@@ -343,6 +366,11 @@ export default function InventoryIndex({
         });
     };
 
+    const openAddStock = (med: Medicine) => {
+        setBatchForm((prev) => ({ ...prev, medicine_id: med.id.toString() }));
+        setShowBatchModal(true);
+    };
+
     const openAdjustForMedicine = (med: Medicine) => {
         setSelectedMedicineForAdjust(med);
         setAdjustForm({
@@ -390,7 +418,7 @@ export default function InventoryIndex({
                                     viewMode === 'medicines' ? "bg-emerald-500 text-ink shadow" : "text-slate-400 hover:text-white"
                                 )}
                             >
-                                Medicines ({medicines.length})
+                                Medicines ({medicines_pagination?.total ?? medicines.length})
                             </button>
                             <button
                                 onClick={() => setViewMode('batches')}
@@ -399,9 +427,17 @@ export default function InventoryIndex({
                                     viewMode === 'batches' ? "bg-cyan-500 text-ink shadow" : "text-slate-400 hover:text-white"
                                 )}
                             >
-                                Batches ({batches.length})
+                                Batches ({batches_pagination?.total ?? batches.length})
                             </button>
                         </div>
+
+                        <Link
+                            href="/inventory/catalog"
+                            className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 transition flex items-center gap-1.5"
+                        >
+                            <Library className="w-3.5 h-3.5" />
+                            <span>Import from DGDA</span>
+                        </Link>
 
                         <button
                             onClick={() => setShowBatchModal(true)}
@@ -467,13 +503,29 @@ export default function InventoryIndex({
                         <option value="warning">Warning (&lt; 90 Days)</option>
                     </select>
 
-                    {(searchTerm || selectedCategory || selectedGeneric || selectedExpiry) && (
+                    {/* Stock filter */}
+                    <select
+                        value={selectedStock}
+                        onChange={(e) => {
+                            setSelectedStock(e.target.value);
+                            applyFilters({ filter_stock: e.target.value });
+                        }}
+                        aria-label="Stock"
+                        className="flex-1 sm:flex-initial text-xs bg-slate-900 border border-slate-800 rounded-xl text-slate-300 px-3 py-1.5 focus:outline-none focus:border-emerald-500"
+                    >
+                        <option value="">All stock</option>
+                        <option value="in_stock">In stock</option>
+                        <option value="no_stock">No stock</option>
+                    </select>
+
+                    {(searchTerm || selectedCategory || selectedGeneric || selectedExpiry || selectedStock) && (
                         <button
                             onClick={() => {
                                 setSearchTerm('');
                                 setSelectedCategory('');
                                 setSelectedGeneric('');
                                 setSelectedExpiry('');
+                                setSelectedStock('');
                                 router.get('/inventory');
                             }}
                             className="text-xs text-rose-400 hover:text-rose-300 px-2 py-1 flex items-center gap-1 font-semibold"
@@ -489,7 +541,13 @@ export default function InventoryIndex({
                 <div className="glass-panel rounded-2xl border border-slate-800/80 p-10 text-center">
                     <Boxes className="w-10 h-10 mx-auto text-slate-600" />
                     <p className="mt-3 font-semibold text-white">No medicines found</p>
-                    <p className="text-sm text-slate-400 mt-1">Try a different search or filter, or add your first medicine.</p>
+                    <p className="text-sm text-slate-400 mt-1">Try a different search or filter, or add medicines.</p>
+                    <Link
+                        href="/inventory/catalog"
+                        className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-ink"
+                    >
+                        <Library className="w-4 h-4" /> Import from the DGDA catalogue
+                    </Link>
                 </div>
             )}
 
@@ -515,16 +573,26 @@ export default function InventoryIndex({
                                 <div className="mt-2 flex flex-wrap gap-1.5">
                                     <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-xs">{med.category?.name || 'General'}</span>
                                     {med.is_low_stock && <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-400 text-xs font-semibold">Low stock</span>}
+                                    {med.total_stock === 0 && !med.is_low_stock && <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 text-xs font-semibold">No stock yet</span>}
                                     {med.is_controlled_substance && <span className="px-2 py-0.5 rounded-md bg-rose-500/15 text-rose-400 text-xs font-semibold">Controlled</span>}
                                 </div>
                                 <div className="mt-3 flex gap-2">
                                     <button
                                         type="button"
-                                        onClick={() => openAdjustForMedicine(med)}
-                                        className="flex-1 min-h-[44px] rounded-xl text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+                                        onClick={() => openAddStock(med)}
+                                        className="flex-1 min-h-[44px] rounded-xl text-sm font-bold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 flex items-center justify-center gap-1.5"
                                     >
-                                        Adjust stock
+                                        <PackagePlus className="w-4 h-4" /> Add stock
                                     </button>
+                                    {(med.batches?.length ?? 0) > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => openAdjustForMedicine(med)}
+                                            className="flex-1 min-h-[44px] rounded-xl text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+                                        >
+                                            Adjust
+                                        </button>
+                                    )}
                                     <button
                                         type="button"
                                         onClick={() => handleDeleteMedicine(med)}
@@ -607,6 +675,9 @@ export default function InventoryIndex({
                                                     <AlertTriangle className="w-2.5 h-2.5" /> Low Stock
                                                 </span>
                                             )}
+                                            {med.total_stock === 0 && !med.is_low_stock && (
+                                                <span className="text-[11px] text-slate-500">No stock yet</span>
+                                            )}
                                         </td>
                                         <td className="py-3 px-4 font-bold text-emerald-400 text-sm">
                                             {formatCurrency(med.current_selling_price)}
@@ -614,11 +685,20 @@ export default function InventoryIndex({
                                         <td className="py-3 px-4 text-right">
                                             <div className="flex items-center justify-end gap-1.5">
                                                 <button
-                                                    onClick={() => openAdjustForMedicine(med)}
-                                                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+                                                    onClick={() => openAddStock(med)}
+                                                    title="Add a batch (quantity, expiry, price)"
+                                                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 transition flex items-center gap-1"
                                                 >
-                                                    Adjust
+                                                    <PackagePlus className="w-3.5 h-3.5" /> Stock
                                                 </button>
+                                                {(med.batches?.length ?? 0) > 0 && (
+                                                    <button
+                                                        onClick={() => openAdjustForMedicine(med)}
+                                                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+                                                    >
+                                                        Adjust
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => handleDeleteMedicine(med)}
                                                     title="Archive medicine"
@@ -634,6 +714,30 @@ export default function InventoryIndex({
                             </tbody>
                         </table>
                     </div>
+
+                    {medicines_pagination && medicines_pagination.last_page > 1 && (
+                        <nav className="px-4 py-3 border-t border-slate-800 flex items-center justify-between gap-3" aria-label="Medicine pages">
+                            <button
+                                type="button"
+                                disabled={!medicines_pagination.prev_url}
+                                onClick={() => medicines_pagination.prev_url && router.visit(medicines_pagination.prev_url)}
+                                className="min-h-[40px] px-4 rounded-xl border border-slate-700 text-sm font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none"
+                            >
+                                ← Previous
+                            </button>
+                            <span className="text-sm text-slate-400 text-center">
+                                {medicines_pagination.from}–{medicines_pagination.to} of {medicines_pagination.total}
+                            </span>
+                            <button
+                                type="button"
+                                disabled={!medicines_pagination.next_url}
+                                onClick={() => medicines_pagination.next_url && router.visit(medicines_pagination.next_url)}
+                                className="min-h-[40px] px-4 rounded-xl border border-slate-700 text-sm font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none"
+                            >
+                                Next →
+                            </button>
+                        </nav>
+                    )}
                 </div>
             )}
 
@@ -729,6 +833,28 @@ export default function InventoryIndex({
                             </tbody>
                         </table>
                     </div>
+
+                    {batches_pagination && batches_pagination.last_page > 1 && (
+                        <nav className="px-4 py-3 border-t border-slate-800 flex items-center justify-between gap-3" aria-label="Batch pages">
+                            <button
+                                type="button"
+                                disabled={!batches_pagination.prev_url}
+                                onClick={() => batches_pagination.prev_url && router.visit(batches_pagination.prev_url, { preserveState: true })}
+                                className="min-h-[40px] px-4 rounded-xl border border-slate-700 text-sm font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none"
+                            >
+                                ← Previous
+                            </button>
+                            <span className="text-sm text-slate-400">{batches_pagination.from}–{batches_pagination.to} of {batches_pagination.total}</span>
+                            <button
+                                type="button"
+                                disabled={!batches_pagination.next_url}
+                                onClick={() => batches_pagination.next_url && router.visit(batches_pagination.next_url, { preserveState: true })}
+                                className="min-h-[40px] px-4 rounded-xl border border-slate-700 text-sm font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none"
+                            >
+                                Next →
+                            </button>
+                        </nav>
+                    )}
                 </div>
             )}
 
@@ -1112,7 +1238,7 @@ export default function InventoryIndex({
                                     className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
                                 >
                                     <option value="">Select Medicine</option>
-                                    {medicines.map((m) => (
+                                    {(medicine_options.length ? medicine_options : medicines).map((m) => (
                                         <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
                                     ))}
                                 </select>

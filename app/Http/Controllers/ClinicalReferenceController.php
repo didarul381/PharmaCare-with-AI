@@ -17,6 +17,8 @@ use Inertia\Inertia;
 
 class ClinicalReferenceController extends Controller
 {
+    private const BRAND_LIST_LIMIT = 300;
+
     /**
      * Display the MedEx-style Medicine Dictionary & Clinical Encyclopedia.
      */
@@ -60,7 +62,12 @@ class ClinicalReferenceController extends Controller
 
         if ($letter) {
             if ($letter === '#') {
-                $brandsQuery->whereRaw("name GLOB '[0-9]*'");
+                // Names starting with a digit (portable: SQLite has no REGEXP by default, MySQL has no GLOB)
+                $brandsQuery->where(function ($q) {
+                    foreach (range(0, 9) as $d) {
+                        $q->orWhere('name', 'like', "{$d}%");
+                    }
+                });
             } else {
                 $brandsQuery->where('name', 'like', "{$letter}%");
             }
@@ -90,7 +97,9 @@ class ClinicalReferenceController extends Controller
             });
         }
 
-        $brands = $brandsQuery->orderBy('name', 'asc')->get()->map(function ($med) {
+        // Cap the list so very large inventories stay fast — search / A–Z narrow it down.
+        $brandsTotal = (clone $brandsQuery)->count();
+        $brands = $brandsQuery->orderBy('name', 'asc')->limit(self::BRAND_LIST_LIMIT)->get()->map(function ($med) {
             $totalStock = $med->batches->sum('current_quantity');
             $unitPrice = (float) $med->current_selling_price;
             $stripPrice = round($unitPrice * 10, 2);
@@ -328,6 +337,7 @@ class ClinicalReferenceController extends Controller
         return Inertia::render('ClinicalReference/Index', [
             'mode' => $mode,
             'brands' => $brands,
+            'brands_total' => $brandsTotal,
             'generics' => $generics,
             'companies' => $companies,
             'dosage_forms' => $dosageForms,

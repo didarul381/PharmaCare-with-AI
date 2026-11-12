@@ -60,9 +60,25 @@ class Batch extends Model
         return $this->hasMany(StockAdjustment::class);
     }
 
+    /**
+     * Whole days from today to expiry (negative once expired).
+     * Plain date arithmetic — this runs for every batch on list screens, and
+     * creating Carbon instances per call was the slowest part of serialising them.
+     */
     public function getDaysUntilExpiryAttribute(): int
     {
-        return (int) Carbon::now()->startOfDay()->diffInDays($this->expiry_date->startOfDay(), false);
+        $raw = $this->attributes['expiry_date'] ?? null;
+        if (! $raw) {
+            return 0;
+        }
+
+        $today = Carbon::now()->toDateString(); // respects Carbon::setTestNow()
+        static $todayTs = [];
+        $todayTs[$today] ??= strtotime($today.' 00:00:00 UTC');
+
+        $expiry = strtotime(substr((string) $raw, 0, 10).' 00:00:00 UTC');
+
+        return (int) round(($expiry - $todayTs[$today]) / 86400);
     }
 
     public function getIsExpiredAttribute(): bool

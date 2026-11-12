@@ -65,16 +65,17 @@ class DashboardController extends Controller
             ])
             ->orderBy('expiry_date', 'asc')
             ->take(5)
-            ->get();
+            ->get()
+            ->each(fn ($b) => $b->medicine?->setAppends([])); // only name/generic are shown
 
         // Low stock items
         $lowStockMedicines = Medicine::with(['category', 'dosageForm', 'batches' => function($q) {
             $q->where('is_active', true);
         }])
-        ->get()
-        ->filter(fn($m) => $m->is_low_stock)
+        ->where('is_active', true)
+        ->lowStock()
         ->take(5)
-        ->values();
+        ->get();
 
         // Recent transactions
         $recentSales = Sale::with(['user', 'customer', 'items.medicine'])

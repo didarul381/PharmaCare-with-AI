@@ -17,9 +17,17 @@ class DemandForecastService
      */
     public function generateForecast(): array
     {
+        // Only medicines the pharmacy actually stocks (catalogue entries never stocked are ignored).
         $medicines = Medicine::with(['category', 'manufacturer', 'batches' => function ($q) {
             $q->where('is_active', true);
-        }])->where('is_active', true)->get();
+        }])->where('is_active', true)->whereHas('batches')->get();
+
+        // Units sold per medicine in the last 30 days — one grouped query instead of one per medicine.
+        $sales30 = SaleItem::where('created_at', '>=', Carbon::now()->subDays(30))
+            ->whereIn('medicine_id', $medicines->pluck('id'))
+            ->groupBy('medicine_id')
+            ->selectRaw('medicine_id, SUM(quantity) as qty')
+            ->pluck('qty', 'medicine_id');
 
         $forecastItems = [];
         $totalRestockCost = 0;
@@ -28,10 +36,8 @@ class DemandForecastService
             $totalStock = $med->total_stock;
             $minAlert = $med->min_stock_alert;
 
-            // Compute historical or simulated rolling daily sales velocity
-            $past30DaysSales = SaleItem::where('medicine_id', $med->id)
-                ->where('created_at', '>=', Carbon::now()->subDays(30))
-                ->sum('quantity');
+            // Rolling daily sales velocity
+            $past30DaysSales = (float) ($sales30[$med->id] ?? 0);
 
             // Default reasonable velocity for demonstration if sales history is starting
             $dailyVelocity = max(0.5, $past30DaysSales > 0 ? ($past30DaysSales / 30) : ($minAlert / 10));

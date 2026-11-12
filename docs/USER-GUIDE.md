@@ -31,13 +31,26 @@ Short, task-based instructions for pharmacy staff. Each section says which roles
 - **Collect due** (amber button) → record a payment against an unpaid or partial invoice.
 - **Return** (↺) → choose items and quantities; stock goes back into the original batch.
 
+## Add medicines in bulk (DGDA catalogue)
+*Inventory Manager, Pharmacist, Super Admin* → **Inventory** → **Import from DGDA**
+
+The catalogue lists every medicine registered with DGDA in Bangladesh (~39,000) — brand, generic, strength, dosage form, company and DAR number.
+
+1. **First time only:** press **Download now** (about 5 minutes; keep the page open). After that it refreshes itself once a month, or press **Update list**.
+2. Search by brand, generic or DAR number, or filter by **company** and **dosage form**. Brands that start with your search appear first.
+3. Tick the medicines you sell (or **Select page**) and press **Add to inventory** — or use **Add all N matches** to add everything that matches your filters (up to 1,000 per click). Use the **+ Add** button on a row to add just one.
+4. Medicines already in your inventory show **Added** and are skipped. Products listed more than once by DGDA (same name and form from different factories) are added only once.
+5. New medicines start with **no stock** and don't appear at the POS yet. In **Inventory**, filter **Stock → No stock** and press **+ Stock** on each one to enter batch, expiry, quantity and prices.
+
+> DGDA's registry has no prices — you set them when you add stock.
+
 ## Add medicines and stock
 *Inventory Manager, Pharmacist, Super Admin* → **Inventory**
 
 1. **Add Medicine** — name, SKU, generic, category, manufacturer, dosage form, strength, reorder level. Tick *Prescription required* or *Controlled* when relevant. Missing generic/category? Use **+ Add New** beside the field.
-2. **Add Batch** — pick the medicine, enter batch number, expiry date, quantity, cost and selling price. The medicine now appears in the POS.
+2. **Add Batch** (or **+ Stock** on a medicine’s row) — enter batch number, expiry date, quantity, cost and selling price. The medicine now appears in the POS.
 3. **Adjust** — fix counts for damage, expiry, or stock-take differences. Every adjustment needs a reason and is logged.
-4. Use the **Expiry** filter to see what expires soon; the dashboard also lists batches expiring within 30 days.
+4. Use the **Expiry** and **Stock** filters to see what expires soon or what has no stock yet; the dashboard also lists batches expiring within 30 days.
 
 ## Suppliers and purchases
 *Inventory Manager, Pharmacist, Super Admin* → **Suppliers & Purchases**

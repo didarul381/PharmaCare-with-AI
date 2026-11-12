@@ -21,7 +21,8 @@ Demo mode turns an installation into a safe showcase for prospective customers.
    APP_DEBUG=false
    ```
 3. `php artisan optimize`
-4. Make sure the scheduler cron job is installed (see INSTALLATION.md). It runs `php artisan pharmacare:demo-reset`, which rebuilds the database with fresh sample staff, medicines and 30 days of sales ending today.
+4. Load the medicine catalogue once: `php artisan pharmacare:sync-dgda` (the in-app download button is disabled in demo mode). Demo resets keep it.
+5. Make sure the scheduler cron job is installed (see INSTALLATION.md). It runs `php artisan pharmacare:demo-reset`, which rebuilds the database with fresh sample staff, medicines and 30 days of sales ending today.
 
 Reset manually at any time:
 

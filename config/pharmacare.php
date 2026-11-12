@@ -47,6 +47,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Bangladesh national drug catalogue (DGDA registered products)
+    |--------------------------------------------------------------------------
+    |
+    | Public terminology server run by DGHS (Ministry of Health & Family
+    | Welfare). Data: Directorate General of Drug Administration, Government
+    | of Bangladesh. Sync with: php artisan pharmacare:sync-dgda
+    |
+    */
+    'dgda_catalog_url' => env('PHARMACARE_DGDA_CATALOG_URL', 'https://tr.ocl.dghs.gov.bd/api/orgs/MoHFW/sources/DGDA-Drugs/concepts/'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Module access per role
     |--------------------------------------------------------------------------
     |

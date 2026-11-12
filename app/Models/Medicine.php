@@ -17,6 +17,7 @@ class Medicine extends Model
         'brand_name',
         'sku',
         'barcode',
+        'catalog_code',
         'generic_name_id',
         'category_id',
         'manufacturer_id',
@@ -91,27 +92,47 @@ class Medicine extends Model
             ->orderBy('expiry_date', 'asc');
     }
 
+    /*
+     * Stock figures use the already-loaded `batches` relation when present
+     * (eager-load active batches) so list screens don't run one query per row.
+     */
+
     public function getTotalStockAttribute(): int
     {
-        return (int) $this->batches()
-            ->where('is_active', true)
-            ->sum('current_quantity');
+        if ($this->relationLoaded('batches')) {
+            return (int) $this->batches->where('is_active', true)->sum('current_quantity');
+        }
+
+        return (int) $this->batches()->where('is_active', true)->sum('current_quantity');
     }
 
     public function getCurrentSellingPriceAttribute(): float
     {
-        $earliestBatch = $this->batches()
-            ->where('is_active', true)
-            ->where('current_quantity', '>', 0)
-            ->orderBy('expiry_date', 'asc')
-            ->first();
+        if ($this->relationLoaded('batches')) {
+            $batch = $this->batches
+                ->filter(fn ($b) => $b->is_active && $b->current_quantity > 0)
+                ->sortBy('expiry_date')
+                ->first();
+        } else {
+            $batch = $this->batches()
+                ->where('is_active', true)
+                ->where('current_quantity', '>', 0)
+                ->orderBy('expiry_date', 'asc')
+                ->first();
+        }
 
-        return $earliestBatch ? (float) $earliestBatch->selling_price : 0.00;
+        return $batch ? (float) $batch->selling_price : 0.00;
     }
 
+    /**
+     * Low stock = the medicine has been stocked before and is now at/below its alert level.
+     * Catalogue entries that were never stocked are "not stocked yet", not "low".
+     */
     public function getIsLowStockAttribute(): bool
     {
-        return $this->total_stock <= $this->min_stock_alert;
+        $hasBatches = $this->relationLoaded('batches') ? $this->batches->isNotEmpty() : $this->batches()->exists();
+
+        return $hasBatches && $this->total_stock <= $this->min_stock_alert;
     }
 
     public function scopeActive(Builder $query): Builder
@@ -119,10 +140,21 @@ class Medicine extends Model
         return $query->where('is_active', true);
     }
 
+    /** Medicines with sellable stock (active, unexpired batch with quantity). */
+    public function scopeInStock(Builder $query): Builder
+    {
+        return $query->whereHas('batches', fn ($q) => $q->where('is_active', true)
+            ->where('current_quantity', '>', 0)
+            ->where('expiry_date', '>', now()->toDateString()));
+    }
+
+    /** SQL version of is_low_stock — no per-row queries. */
     public function scopeLowStock(Builder $query): Builder
     {
-        return $query->whereHas('batches', function ($q) {
-            $q->where('is_active', true);
-        }, '<=', 0)->orWhereRaw('(SELECT COALESCE(SUM(current_quantity), 0) FROM batches WHERE batches.medicine_id = medicines.id AND batches.is_active = 1) <= medicines.min_stock_alert');
+        return $query->whereHas('batches')
+            ->whereRaw(
+                '(SELECT COALESCE(SUM(b.current_quantity), 0) FROM batches b WHERE b.medicine_id = medicines.id AND b.is_active = ?) <= medicines.min_stock_alert',
+                [true],
+            );
     }
 }

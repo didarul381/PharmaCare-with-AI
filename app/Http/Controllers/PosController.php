@@ -33,6 +33,7 @@ class PosController extends Controller
             },
         ])
         ->where('is_active', true)
+        ->inStock() // catalogue items without stock stay out of the counter grid
         ->get()
         ->map(function ($med) {
             $earliestBatch = $med->batches->first();

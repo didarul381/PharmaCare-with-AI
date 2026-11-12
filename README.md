@@ -20,6 +20,7 @@ Built with **Laravel 13**, **Inertia** and **React + TypeScript**.
 - Invoices with reprint, due collection and returns that restock automatically
 
 **Stock**
+- **Bulk import from the DGDA national catalogue** — ~39,000 registered medicines (brand, generic, strength, form, company); search, filter by company/form, add hundreds in one click
 - Medicines, batches and expiry dates; Box → Strip → Piece unit conversion
 - **FEFO**: the POS always sells the batch closest to expiry first
 - Low-stock and expiring-soon alerts, stock adjustments with reasons

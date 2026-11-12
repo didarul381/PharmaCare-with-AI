@@ -140,7 +140,7 @@ class ReportController extends Controller
         $safeCount = Batch::where('is_active', true)->where('current_quantity', '>', 0)->where('expiry_date', '>', $in90Days)->count();
 
         // Low stock count
-        $lowStockCount = Medicine::where('is_active', true)->get()->filter(fn ($m) => $m->is_low_stock)->count();
+        $lowStockCount = Medicine::where('is_active', true)->lowStock()->count();
 
         // 6. Controlled Substances & Narcotics Dispensation Compliance
         $controlledItems = SaleItem::whereHas('sale', function ($q) use ($startDate, $endDate) {

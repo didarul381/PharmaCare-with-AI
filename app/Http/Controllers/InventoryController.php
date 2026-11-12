@@ -67,7 +67,22 @@ class InventoryController extends Controller
             $medicinesQuery->where('manufacturer_id', $manufacturerId);
         }
 
-        $medicines = $medicinesQuery->get();
+        $filterStock = $request->input('filter_stock'); // 'in_stock' | 'no_stock'
+        if ($filterStock === 'in_stock') {
+            $medicinesQuery->inStock();
+        } elseif ($filterStock === 'no_stock') {
+            $medicinesQuery->whereDoesntHave('batches', fn ($q) => $q->where('is_active', true)->where('current_quantity', '>', 0));
+        }
+
+        // Paginated so large catalogues (thousands of medicines) stay fast.
+        $medicines = $medicinesQuery->orderBy('name')->paginate(50)->withQueryString();
+
+        // Lightweight list for the "Add Batch" medicine picker.
+        $medicineOptions = Medicine::where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'sku', 'strength'])
+            ->map(fn ($m) => ['id' => $m->id, 'name' => $m->name, 'sku' => $m->sku])
+            ->values();
 
         // Get flat list of all active batches with FEFO status
         $batchesQuery = Batch::with(['medicine.genericName', 'medicine.dosageForm', 'supplier'])
@@ -80,14 +95,38 @@ class InventoryController extends Controller
             $batchesQuery->nearExpiry(90);
         }
 
-        $batches = $batchesQuery->get();
+        $batches = $batchesQuery->paginate(100, ['*'], 'batch_page')->withQueryString();
+
+        // The batch list only shows the medicine's name/generic — skip its stock accessors
+        // (they would otherwise run several queries per batch).
+        $batches->getCollection()->each(fn (Batch $b) => $b->medicine?->setAppends([]));
 
         return Inertia::render('Inventory/Index', [
-            'medicines' => $medicines,
-            'batches' => $batches,
+            'medicines' => $medicines->items(),
+            'medicines_pagination' => [
+                'current_page' => $medicines->currentPage(),
+                'last_page' => $medicines->lastPage(),
+                'total' => $medicines->total(),
+                'from' => $medicines->firstItem(),
+                'to' => $medicines->lastItem(),
+                'prev_url' => $medicines->previousPageUrl(),
+                'next_url' => $medicines->nextPageUrl(),
+            ],
+            'medicine_options' => $medicineOptions,
+            'catalog_available' => \App\Models\DrugCatalogItem::query()->exists(),
+            'batches' => $batches->items(),
+            'batches_pagination' => [
+                'current_page' => $batches->currentPage(),
+                'last_page' => $batches->lastPage(),
+                'total' => $batches->total(),
+                'from' => $batches->firstItem(),
+                'to' => $batches->lastItem(),
+                'prev_url' => $batches->previousPageUrl(),
+                'next_url' => $batches->nextPageUrl(),
+            ],
             'categories' => Category::where('is_active', true)->get(),
-            'generics' => GenericName::all(),
-            'manufacturers' => Manufacturer::where('is_active', true)->get(),
+            'generics' => GenericName::orderBy('name')->get(['id', 'name']), // dropdown only — skip monograph text
+            'manufacturers' => Manufacturer::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'dosage_forms' => DosageForm::all(),
             'units' => Unit::all(),
             'metrics' => $this->inventoryService->getInventoryMetrics(),
@@ -97,6 +136,7 @@ class InventoryController extends Controller
                 'generic_id' => $genericId,
                 'manufacturer_id' => $manufacturerId,
                 'filter_expiry' => $filterExpiry,
+                'filter_stock' => $filterStock,
             ],
         ]);
     }

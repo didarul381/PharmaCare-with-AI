@@ -127,6 +127,7 @@ interface DosageFormItem {
 interface Props {
     mode: 'brands' | 'generics' | 'companies' | 'dosage_forms' | 'ddi_checker' | 'api_search';
     brands: BrandItem[];
+    brands_total?: number;
     generics: GenericMonograph[];
     companies: CompanyItem[];
     dosage_forms: DosageFormItem[];
@@ -160,6 +161,7 @@ interface Props {
 export default function ClinicalReferenceIndex({
     mode,
     brands = [],
+    brands_total,
     generics = [],
     companies = [],
     dosage_forms = [],
@@ -683,7 +685,7 @@ export default function ClinicalReferenceIndex({
                     {/* Left: Brand List (5 cols) */}
                     <div className="lg:col-span-5 space-y-2.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
                         <div className="flex items-center justify-between text-xs text-slate-400 px-1 pb-1">
-                            <span>Showing <strong>{brands.length}</strong> Brand Medicines</span>
+                            <span>Showing <strong>{brands.length}</strong>{brands_total && brands_total > brands.length ? <> of <strong>{brands_total.toLocaleString()}</strong> — search or use A–Z to narrow</> : ' brand medicines'}</span>
                             {selectedLetter && <span>Letter: <strong>{selectedLetter}</strong></span>}
                         </div>
 

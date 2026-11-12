@@ -159,7 +159,7 @@ class InventoryService
             ])
             ->count();
 
-        $lowStockCount = Medicine::where('is_active', true)->get()->filter(fn($m) => $m->is_low_stock)->count();
+        $lowStockCount = Medicine::where('is_active', true)->lowStock()->count();
 
         return [
             'total_medicines' => $totalMedicines,

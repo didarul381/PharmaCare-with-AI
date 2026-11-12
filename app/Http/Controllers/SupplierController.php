@@ -31,7 +31,8 @@ class SupplierController extends Controller
             ->latest()
             ->get();
 
-        $medicines = Medicine::where('is_active', true)->get();
+        // Picker list only — light columns, no stock accessors (avoids per-row queries on big catalogues).
+        $medicines = Medicine::where('is_active', true)->orderBy('name')->get(['id', 'name', 'sku', 'strength'])->each->setAppends([]);
 
         return Inertia::render('Suppliers/Index', [
             'suppliers' => $suppliers,
