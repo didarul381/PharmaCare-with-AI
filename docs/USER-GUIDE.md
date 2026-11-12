@@ -15,13 +15,13 @@ Short, task-based instructions for pharmacy staff. Each section says which roles
 
 1. Open **Point of Sale** (F2).
 2. Scan a barcode or type a name / generic. Click a medicine card to add it. On a phone, use the **Catalog** and **Cart** tabs.
-3. Change quantities with **−** / **+**. The batch closest to expiry is chosen automatically (shown as "FEFO: batch number").
+3. Change quantities with **−** / **+**, or click the number and type it (e.g. 30 tablets). The batch closest to expiry is chosen automatically (shown under the name). The line you just added is highlighted and scrolled into view.
 4. Optional: choose a saved customer (needed for credit), add a **Discount**, or change **VAT** for this sale.
 5. If two medicines in the cart interact, a warning appears — read it before continuing.
-6. Choose the payment type, enter the amount received and press **Validate & Dispense** (F8). The change due is calculated for you.
+6. Choose the payment type, enter the amount received and press **Complete sale** (F8). The change due is calculated for you.
 7. Print or close the receipt.
 
-**Hold a sale** (customer stepped away): **Hold** (F9). Bring it back from **Held Orders**.
+**Hold a sale** (customer stepped away): the ⏸ button next to the customer, or F9. Bring it back from **Held Orders**.
 
 ## Returns, reprints and dues
 *Cashier, Pharmacist, Super Admin* → **Invoices & Returns**

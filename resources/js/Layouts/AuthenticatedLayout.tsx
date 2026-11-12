@@ -38,6 +38,8 @@ interface Props {
     header?: ReactNode;
     children: ReactNode;
     activeTab?: ModuleKey | 'profile';
+    /** Desktop: make the page body fill the remaining viewport height (e.g. the POS). */
+    fullHeight?: boolean;
 }
 
 interface NavItem {
@@ -122,7 +124,7 @@ export function Avatar({ name, src, className }: { name?: string; src?: string |
     );
 }
 
-export default function AuthenticatedLayout({ header, children, activeTab }: Props) {
+export default function AuthenticatedLayout({ header, children, activeTab, fullHeight = false }: Props) {
     const page = usePage<PageProps>();
     const { auth, flash, app_info } = page.props;
     const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -453,9 +455,13 @@ export default function AuthenticatedLayout({ header, children, activeTab }: Pro
                         </div>
                     )}
 
-                    <main id="main" tabIndex={-1} className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 focus:outline-none">
-                        {header && <div className="mb-4 sm:mb-6">{header}</div>}
-                        {children}
+                    <main
+                        id="main"
+                        tabIndex={-1}
+                        className={cn('flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 focus:outline-none', fullHeight && 'lg:flex lg:flex-col')}
+                    >
+                        {header && <div className={cn('mb-4 sm:mb-6', fullHeight && 'shrink-0 lg:mb-4')}>{header}</div>}
+                        {fullHeight ? <div className="lg:flex-1 lg:min-h-0">{children}</div> : children}
                     </main>
                 </div>
             </div>

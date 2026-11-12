@@ -132,6 +132,19 @@ export default function PosIndex({ medicines, customers, categories, store_setti
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
+    // Cart UX: scroll to & briefly highlight the line that was just added/changed.
+    const cartListRef = useRef<HTMLDivElement>(null);
+    const [touched, setTouched] = useState<{ id: number; tick: number } | null>(null);
+    const markTouched = (id: number) => setTouched((t) => ({ id, tick: (t?.tick ?? 0) + 1 }));
+
+    useEffect(() => {
+        if (!touched) return;
+        const row = cartListRef.current?.querySelector<HTMLElement>(`[data-cart-id="${touched.id}"]`);
+        row?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        const t = window.setTimeout(() => setTouched((cur) => (cur?.tick === touched.tick ? null : cur)), 1200);
+        return () => window.clearTimeout(t);
+    }, [touched]);
+
     const searchInputRef = useRef<HTMLInputElement>(null);
 
     // Auto-load items transferred from AI Prescription Scanner
@@ -262,6 +275,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                 }];
             }
         });
+        markTouched(med.id);
     };
 
     const updateQuantity = (medicineId: number, delta: number) => {
@@ -281,6 +295,19 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                 return item;
             }).filter(Boolean) as CartItem[];
         });
+        if (delta > 0) markTouched(medicineId);
+    };
+
+    // Typed quantity (e.g. 30 tablets) — clamped to available stock.
+    const setQuantity = (medicineId: number, value: string) => {
+        const qty = parseInt(value, 10);
+        if (!Number.isFinite(qty) || qty < 1) return;
+        const target = cart.find((item) => item.medicine.id === medicineId);
+        if (!target) return;
+        const max = target.medicine.total_stock;
+        if (qty > max) toast.warning(`Only ${max} of ${target.medicine.name} in stock.`);
+        const next = Math.min(qty, max);
+        setCart((prev) => prev.map((item) => (item.medicine.id === medicineId ? { ...item, quantity: next } : item)));
     };
 
     const removeFromCart = (medicineId: number) => {
@@ -420,13 +447,14 @@ export default function PosIndex({ medicines, customers, categories, store_setti
     return (
         <AuthenticatedLayout
             activeTab="pos"
+            fullHeight
             header={
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3">
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
                             <span>Point of Sale</span>
                         </h1>
-                        <p className="text-sm text-slate-400 mt-1">
+                        <p className="text-sm text-slate-400 mt-1 [@media(max-height:860px)]:lg:hidden">
                             Search or scan medicines, then take payment. The batch closest to expiry is used automatically.
                         </p>
                     </div>
@@ -502,9 +530,9 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 min-h-[calc(100vh-170px)] lg:h-[calc(100vh-140px)]">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 min-h-[calc(100dvh-170px)] lg:min-h-[520px] lg:h-full">
                 {/* Left Area: Medicine Grid & Catalog (8 cols) */}
-                <div className={cn("lg:col-span-7 xl:col-span-8 flex flex-col h-full overflow-hidden", mobileTab !== 'catalog' && "hidden lg:flex")}>
+                <div className={cn("lg:col-span-7 2xl:col-span-8 flex flex-col h-full overflow-hidden", mobileTab !== 'catalog' && "hidden lg:flex")}>
                     {/* Search & Category Pills */}
                     <div className="glass-panel rounded-2xl p-3 mb-4 border border-slate-800/80 flex flex-col sm:flex-row items-center gap-3">
                         <div className="relative flex-1 w-full">
@@ -533,7 +561,7 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                     </div>
 
                     {/* Medicines Grid (FEFO Display) */}
-                    <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                    <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 content-start gap-3">
                         {filteredMedicines.map((med) => (
                             <div
                                 key={med.id}
@@ -610,168 +638,200 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                     )}
                 </div>
 
-                {/* Right Area: Dynamic POS Order Cart (4 cols) */}
-                <div className={cn("lg:col-span-5 xl:col-span-4 glass-panel rounded-2xl border border-slate-800/80 flex flex-col h-full overflow-hidden shadow-2xl bg-gradient-to-b from-panel to-deep", mobileTab !== 'cart' && "hidden lg:flex")}>
-                    {/* Cart Header with Hold & Clear buttons */}
-                    <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+                {/* Right Area: Cart & payment */}
+                <div className={cn("lg:col-span-5 2xl:col-span-4 glass-panel rounded-2xl border border-slate-800/80 flex flex-col h-full lg:overflow-hidden shadow-2xl bg-gradient-to-b from-panel to-deep", mobileTab !== 'cart' && "hidden lg:flex")}>
+                    {/* Header: title, hold/clear, customer (never shrinks) */}
+                    <div className="shrink-0 px-3 py-2.5 border-b border-slate-800 flex items-center gap-2">
+                        <h2 className="font-bold text-white text-base flex items-center gap-1.5 shrink-0">
                             <ShoppingCart className="w-5 h-5 text-emerald-400" />
-                            <h2 className="font-bold text-white text-sm">Active Cart ({cart.length})</h2>
-                        </div>
+                            <span className="sr-only sm:not-sr-only">Cart</span>
+                            <span
+                                className={cn(
+                                    "min-w-[1.5rem] text-center text-xs font-bold px-1.5 py-0.5 rounded-full border",
+                                    cart.length > 0 ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" : "bg-slate-800 text-slate-400 border-slate-700"
+                                )}
+                                aria-label={`${cart.length} items`}
+                            >
+                                {cart.length}
+                            </span>
+                        </h2>
 
-                        <div className="flex items-center gap-2">
-                            {cart.length > 0 && (
-                                <button
-                                    onClick={() => setShowHoldPromptModal(true)}
-                                    title="Hold this order (F9)"
-                                    className="text-xs px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 flex items-center gap-1 font-bold transition"
-                                >
-                                    <PauseCircle className="w-3.5 h-3.5" />
-                                    <span>Hold (F9)</span>
-                                </button>
-                            )}
-
-                            {cart.length > 0 && (
-                                <button
-                                    onClick={clearCart}
-                                    className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 font-semibold"
-                                >
-                                    <Trash2 className="w-3.5 h-3.5" /> Clear
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Customer Selection */}
-                    <div className="p-3 bg-slate-900/60 border-b border-slate-800 flex items-center gap-2">
+                        <label htmlFor="pos-customer" className="sr-only">Customer</label>
                         <select
+                            id="pos-customer"
                             value={selectedCustomer?.id || ''}
                             onChange={(e) => {
                                 const id = parseInt(e.target.value);
                                 const found = customers.find(c => c.id === id) || null;
                                 setSelectedCustomer(found);
                             }}
-                            className="flex-1 text-xs bg-slate-900 border border-slate-800 rounded-xl text-slate-300 px-3 py-1.5 focus:outline-none focus:border-emerald-500"
+                            className="flex-1 min-w-0 text-sm bg-slate-900 border border-slate-800 rounded-xl text-slate-300 pl-3 pr-8 py-1.5 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                         >
-                            <option value="">Walk-in Customer (Standard Retail)</option>
+                            <option value="">Walk-in customer</option>
                             {customers.map((c) => (
                                 <option key={c.id} value={c.id}>
-                                    {c.name} ({c.phone}) - {formatCurrency(c.total_credit)} Due
+                                    {c.name} ({c.phone}) — due {formatCurrency(c.total_credit)}
                                 </option>
                             ))}
                         </select>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowHoldPromptModal(true)}
+                            disabled={cart.length === 0}
+                            title="Hold this order (F9)"
+                            aria-label="Hold this order"
+                            className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 transition disabled:opacity-30 disabled:pointer-events-none"
+                        >
+                            <PauseCircle className="w-4 h-4" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={clearCart}
+                            disabled={cart.length === 0}
+                            title="Clear cart"
+                            aria-label="Clear cart"
+                            className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 transition disabled:opacity-30 disabled:pointer-events-none"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
                     </div>
 
-                    {/* Cart Items List */}
-                    <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                    {/* Cart lines — the only part that scrolls */}
+                    <div ref={cartListRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2.5 space-y-1.5" aria-label="Cart items">
                         {cart.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
-                                <ShoppingCart className="w-12 h-12 stroke-[1.2] text-slate-700 mb-2" />
-                                <p className="text-xs font-semibold text-slate-400">POS Cart is Empty</p>
-                                <p className="text-xs text-slate-600 mt-0.5">Click any medicine card or scan barcode to add items</p>
+                            <div className="h-full min-h-[180px] flex flex-col items-center justify-center text-center p-6">
+                                <ShoppingCart className="w-12 h-12 stroke-[1.2] text-slate-600 mb-2" />
+                                <p className="text-sm font-semibold text-slate-300">Cart is empty</p>
+                                <p className="text-sm text-slate-500 mt-0.5">Click a medicine or scan a barcode to add it.</p>
                                 {heldOrders.length > 0 && (
                                     <button
+                                        type="button"
                                         onClick={() => setShowHeldModal(true)}
-                                        className="mt-3 px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold hover:bg-amber-500/30 transition flex items-center gap-1.5"
+                                        className="mt-3 px-3 py-2 rounded-xl bg-amber-500/15 text-amber-300 border border-amber-500/40 text-sm font-bold hover:bg-amber-500/25 transition flex items-center gap-1.5"
                                     >
-                                        <FolderDown className="w-3.5 h-3.5" />
-                                        <span>Resume a Held Order ({heldOrders.length})</span>
+                                        <FolderDown className="w-4 h-4" />
+                                        Resume a held order ({heldOrders.length})
                                     </button>
                                 )}
                             </div>
                         ) : (
                             cart.map((item) => (
-                                <div key={item.medicine.id} className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
-                                    <div className="flex-1 min-w-0">
-                                        <span className="font-bold text-white text-xs block truncate">
+                                <div
+                                    key={item.medicine.id}
+                                    data-cart-id={item.medicine.id}
+                                    className={cn(
+                                        "flex flex-wrap sm:flex-nowrap items-center gap-x-2 gap-y-1.5 pl-3 pr-1.5 py-2 rounded-xl border transition-colors duration-500",
+                                        touched?.id === item.medicine.id
+                                            ? "bg-emerald-500/10 border-emerald-500/50"
+                                            : "bg-slate-900/80 border-slate-800"
+                                    )}
+                                >
+                                    <div className="basis-full sm:basis-0 sm:flex-1 min-w-0 pr-1.5 sm:pr-0">
+                                        <p className="text-sm font-semibold text-white truncate" title={item.medicine.name}>
                                             {item.medicine.name}
-                                        </span>
-                                        <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
-                                            <span>{formatCurrency(item.unit_price)} / {item.unit_name}</span>
-                                            <span className="text-emerald-400 font-semibold">
-                                                FEFO: {item.medicine.earliest_batch?.batch_number || 'B1'}
-                                            </span>
-                                        </div>
+                                        </p>
+                                        <p className="text-xs text-slate-400 truncate">
+                                            {formatCurrency(item.unit_price)} / {item.unit_name}
+                                            {item.medicine.earliest_batch?.batch_number && (
+                                                <span className="text-emerald-400"> · Batch {item.medicine.earliest_batch.batch_number}</span>
+                                            )}
+                                        </p>
                                     </div>
 
-                                    {/* Quantity Counter */}
-                                    <div className="flex items-center gap-1.5 bg-slate-950 px-2 py-1 rounded-lg border border-slate-800">
+                                    {/* Quantity: − [type] + */}
+                                    <div className="flex items-center rounded-lg border border-slate-800 bg-slate-950 shrink-0">
                                         <button
+                                            type="button"
                                             onClick={() => updateQuantity(item.medicine.id, -1)}
-                                            className="text-slate-400 hover:text-white p-0.5"
+                                            aria-label={item.quantity === 1 ? `Remove ${item.medicine.name}` : `Decrease ${item.medicine.name}`}
+                                            className="w-7 h-8 flex items-center justify-center text-slate-400 hover:text-white"
                                         >
-                                            <Minus className="w-3 h-3" />
+                                            <Minus className="w-3.5 h-3.5" />
                                         </button>
-                                        <span className="text-xs font-bold text-white w-5 text-center">{item.quantity}</span>
+                                        <input
+                                            type="number"
+                                            inputMode="numeric"
+                                            min={1}
+                                            max={item.medicine.total_stock}
+                                            value={item.quantity}
+                                            onFocus={(e) => e.currentTarget.select()}
+                                            onChange={(e) => setQuantity(item.medicine.id, e.target.value)}
+                                            aria-label={`Quantity of ${item.medicine.name}`}
+                                            className="no-spinner w-10 h-8 p-0 text-center text-sm font-bold text-white bg-transparent border-0 focus:ring-0"
+                                        />
                                         <button
+                                            type="button"
                                             onClick={() => updateQuantity(item.medicine.id, 1)}
-                                            className="text-slate-400 hover:text-white p-0.5"
+                                            aria-label={`Increase ${item.medicine.name}`}
+                                            className="w-7 h-8 flex items-center justify-center text-slate-400 hover:text-white"
                                         >
-                                            <Plus className="w-3 h-3" />
+                                            <Plus className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
 
-                                    {/* Item Total */}
-                                    <div className="text-right min-w-[65px]">
-                                        <span className="text-xs font-bold text-emerald-400 block">
-                                            {formatCurrency(item.quantity * item.unit_price)}
-                                        </span>
-                                        <button
-                                            onClick={() => removeFromCart(item.medicine.id)}
-                                            className="text-[11px] text-slate-500 hover:text-rose-400"
-                                        >
-                                            Remove
-                                        </button>
-                                    </div>
+                                    <p className="ml-auto sm:ml-0 sm:w-[76px] shrink-0 text-right text-sm font-bold text-emerald-400 tabular-nums">
+                                        {formatCurrency(item.quantity * item.unit_price)}
+                                    </p>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => removeFromCart(item.medicine.id)}
+                                        aria-label={`Remove ${item.medicine.name}`}
+                                        title="Remove"
+                                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 shrink-0"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
                                 </div>
                             ))
                         )}
                     </div>
 
-                    {/* Interactive Discount & VAT Controls */}
-                    <div className="p-3 bg-slate-950/70 border-t border-slate-800/80 space-y-2.5">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-300">
-                            <span className="flex items-center gap-1.5 text-cyan-300">
-                                <BadgePercent className="w-3.5 h-3.5" /> Adjustments & Taxes
-                            </span>
-                            <div className="flex items-center gap-2">
+                    {/* Totals & payment (never shrinks) */}
+                    <div className="shrink-0 px-4 py-3 bg-slate-900/90 border-t border-slate-800 space-y-2.5">
+                        <div className="space-y-0.5 text-sm text-slate-400">
+                            <div className="flex justify-between">
+                                <span>Subtotal</span>
+                                <span className="text-white font-medium tabular-nums">{formatCurrency(subtotal)}</span>
+                            </div>
+
+                            <div className="flex justify-between items-center">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setShowDiscountDrawer(!showDiscountDrawer);
                                         if (showTaxDrawer) setShowTaxDrawer(false);
                                     }}
-                                    className={cn(
-                                        "px-2 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1",
-                                        discountValue > 0
-                                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                                            : showDiscountDrawer
-                                            ? "bg-cyan-500 text-ink border-cyan-400"
-                                            : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
-                                    )}
+                                    aria-expanded={showDiscountDrawer}
+                                    className="flex items-center gap-1.5 hover:text-cyan-300 transition"
                                 >
-                                    <Tag className="w-2.5 h-2.5" />
-                                    <span>Discount {discountValue > 0 ? `(${discountType === 'percentage' ? `${discountValue}%` : `৳${discountValue}`})` : ''}</span>
+                                    <Tag className="w-3.5 h-3.5" />
+                                    Discount{discountValue > 0 ? ` (${discountType === 'percentage' ? `${discountValue}%` : 'flat'})` : ''}
+                                    <span className="text-xs px-1.5 rounded bg-slate-800 text-cyan-400 border border-slate-700">
+                                        {discountValue > 0 ? 'edit' : 'add'}
+                                    </span>
                                 </button>
+                                <span className={cn("tabular-nums", discountValue > 0 ? "text-emerald-400 font-semibold" : "text-slate-500")}>
+                                    {discountValue > 0 ? `−${formatCurrency(discountAmount)}` : '—'}
+                                </span>
+                            </div>
 
+                            <div className="flex justify-between items-center">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setShowTaxDrawer(!showTaxDrawer);
                                         if (showDiscountDrawer) setShowDiscountDrawer(false);
                                     }}
-                                    className={cn(
-                                        "px-2 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1",
-                                        taxPercentage !== 5.0
-                                            ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"
-                                            : showTaxDrawer
-                                            ? "bg-cyan-500 text-ink border-cyan-400"
-                                            : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
-                                    )}
+                                    aria-expanded={showTaxDrawer}
+                                    className="flex items-center gap-1.5 hover:text-cyan-300 transition"
                                 >
-                                    <Percent className="w-2.5 h-2.5" />
-                                    <span>VAT ({taxPercentage}%)</span>
+                                    <Percent className="w-3.5 h-3.5" />
+                                    VAT ({taxPercentage}%)
+                                    <span className="text-xs px-1.5 rounded bg-slate-800 text-cyan-400 border border-slate-700">change</span>
                                 </button>
+                                <span className="text-white font-medium tabular-nums">{formatCurrency(taxAmount)}</span>
                             </div>
                         </div>
 
@@ -915,128 +975,69 @@ export default function PosIndex({ medicines, customers, categories, store_setti
                                 </div>
                             </div>
                         )}
-                    </div>
 
-                    {/* Cart Summary & Payment Drawer */}
-                    <div className="p-4 bg-slate-900/90 border-t border-slate-800 space-y-3">
-                        {/* Subtotal, Discount & Taxes */}
-                        <div className="space-y-1.5 text-xs text-slate-400">
-                            <div className="flex justify-between">
-                                <span>Subtotal</span>
-                                <span className="text-white font-medium">{formatCurrency(subtotal)}</span>
-                            </div>
-
-                            {discountValue > 0 && (
-                                <div className="flex justify-between text-emerald-400 font-semibold">
-                                    <span className="flex items-center gap-1">
-                                        <span>Discount ({discountType === 'percentage' ? `${discountValue}%` : 'Flat'})</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => setDiscountValue(0)}
-                                            className="text-slate-500 hover:text-rose-400 text-[11px] ml-1"
-                                            title="Remove discount"
-                                        >
-                                            ✕
-                                        </button>
-                                    </span>
-                                    <span>-{formatCurrency(discountAmount)}</span>
-                                </div>
-                            )}
-
-                            {discountValue > 0 && (
-                                <div className="flex justify-between text-xs text-slate-500">
-                                    <span>Taxable Subtotal</span>
-                                    <span>{formatCurrency(taxableAmount)}</span>
-                                </div>
-                            )}
-
-                            <div className="flex justify-between items-center">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowTaxDrawer(!showTaxDrawer)}
-                                    className="hover:text-cyan-300 transition flex items-center gap-1.5 group text-left"
-                                    title="Click to change Govt VAT rate"
-                                >
-                                    <span>Govt VAT / Tax ({taxPercentage}%)</span>
-                                    <span className="text-[11px] px-1.5 py-0.2 rounded bg-slate-800 text-cyan-400 border border-slate-700 group-hover:border-cyan-500/40">change</span>
-                                </button>
-                                <span className="text-white font-medium">{formatCurrency(taxAmount)}</span>
-                            </div>
-
-                            <div className="flex justify-between items-center text-sm font-bold text-white pt-1.5 border-t border-slate-800">
-                                <span>Grand Total</span>
-                                <span className="text-lg font-black text-emerald-400">{formatCurrency(grandTotal)}</span>
-                            </div>
+                        <div className="flex justify-between items-center pt-1.5 border-t border-slate-800">
+                            <span className="text-base font-bold text-white">Total</span>
+                            <span className="text-2xl font-black text-emerald-400 tabular-nums">{formatCurrency(grandTotal)}</span>
                         </div>
 
-                        {/* Payment Method Pills */}
-                        <div className="grid grid-cols-4 gap-1.5 pt-1">
+                        {/* Payment method */}
+                        <div className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Payment method">
                             {(['cash', 'card', 'digital_wallet', 'credit'] as const).map((method) => (
                                 <button
                                     key={method}
                                     type="button"
+                                    role="radio"
+                                    aria-checked={paymentMethod === method}
                                     onClick={() => setPaymentMethod(method)}
                                     className={cn(
-                                        "py-1.5 rounded-xl text-xs font-bold uppercase transition",
+                                        "py-1.5 rounded-xl text-xs font-bold transition",
                                         paymentMethod === method
                                             ? "bg-emerald-500 text-ink shadow"
                                             : "bg-slate-800 text-slate-400 hover:text-white"
                                     )}
                                 >
-                                    {method === 'digital_wallet' ? 'bKash/MFS' : method}
+                                    {{ cash: 'Cash', card: 'Card', digital_wallet: 'bKash / MFS', credit: 'Credit' }[method]}
                                 </button>
                             ))}
                         </div>
 
-                        {/* Cash Tendered & Change */}
+                        {/* Cash received & change */}
                         {paymentMethod === 'cash' && (
-                            <div className="grid grid-cols-2 gap-2 pt-1">
-                                <div>
-                                    <label className="text-[11px] text-slate-400 font-semibold block mb-0.5">Tendered (৳)</label>
-                                    <input
+                            <div className="flex items-center gap-2">
+                                <label htmlFor="pos-cash-received" className="text-xs text-slate-400 font-semibold shrink-0">Received</label>
+                                <input
+                                        id="pos-cash-received"
                                         type="number"
+                                        inputMode="decimal"
                                         step="0.01"
                                         value={paidAmount}
+                                        placeholder={grandTotal.toFixed(2)}
                                         onChange={(e) => setPaidAmount(e.target.value)}
-                                        className="w-full text-xs bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-white font-bold focus:outline-none focus:border-emerald-500"
+                                        className="no-spinner flex-1 min-w-0 text-sm bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-white font-bold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                                     />
-                                </div>
-                                <div>
-                                    <label className="text-[11px] text-slate-400 font-semibold block mb-0.5">Change Due</label>
-                                    <div className="w-full text-xs bg-slate-950/60 border border-slate-800/80 rounded-xl px-3 py-1.5 text-cyan-400 font-bold">
-                                        {formatCurrency(changeAmount)}
-                                    </div>
-                                </div>
+                                <span className="text-xs text-slate-400 font-semibold shrink-0">Change</span>
+                                <span className="shrink-0 min-w-[84px] text-right text-sm text-cyan-400 font-bold tabular-nums" aria-live="polite">
+                                    {formatCurrency(changeAmount)}
+                                </span>
                             </div>
                         )}
 
-                        {/* Checkout & Hold Action Row */}
-                        <div className="flex items-center gap-2">
-                            {cart.length > 0 && (
-                                <button
-                                    type="button"
-                                    onClick={() => setShowHoldPromptModal(true)}
-                                    title="Hold this cart order"
-                                    className="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 transition flex items-center justify-center"
-                                >
-                                    <PauseCircle className="w-5 h-5" />
-                                </button>
+                        <button
+                            type="button"
+                            disabled={cart.length === 0 || isProcessing}
+                            onClick={handleCheckout}
+                            className={cn(
+                                "w-full py-3 rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
+                                cart.length === 0 || isProcessing
+                                    ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+                                    : "bg-gradient-to-r from-emerald-500 to-teal-500 text-ink hover:from-emerald-400 hover:to-teal-400 shadow-glow-emerald"
                             )}
-
-                            <button
-                                disabled={cart.length === 0 || isProcessing}
-                                onClick={handleCheckout}
-                                className={cn(
-                                    "flex-1 py-3 rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 shadow-glow-emerald transition-all transform active:scale-[0.98]",
-                                    cart.length === 0 || isProcessing
-                                        ? "bg-slate-800 text-slate-500 cursor-not-allowed"
-                                        : "bg-gradient-to-r from-emerald-500 to-teal-500 text-ink hover:from-emerald-400 hover:to-teal-400"
-                                )}
-                            >
-                                <CheckCircle2 className="w-4 h-4 text-ink" />
-                                <span>{isProcessing ? 'Processing...' : `Validate & Dispense (${formatCurrency(grandTotal)})`}</span>
-                            </button>
-                        </div>
+                        >
+                            <CheckCircle2 className="w-4 h-4" />
+                            {isProcessing ? 'Processing…' : `Complete sale · ${formatCurrency(grandTotal)}`}
+                            {!isProcessing && cart.length > 0 && <kbd className="hidden lg:inline text-[11px] font-mono opacity-70">F8</kbd>}
+                        </button>
                     </div>
                 </div>
             </div>
