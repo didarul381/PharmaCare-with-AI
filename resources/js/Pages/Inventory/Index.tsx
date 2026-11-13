@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import MedicinePicker from '@/Components/MedicinePicker';
 import {
     Boxes,
     Search,
@@ -1230,18 +1231,14 @@ export default function InventoryIndex({
 
                         <form onSubmit={handleCreateBatch} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-semibold text-slate-300 mb-1">Target Medicine *</label>
-                                <select
+                                <label htmlFor="batch-medicine" className="block text-xs font-semibold text-slate-300 mb-1">Target Medicine *</label>
+                                <MedicinePicker
+                                    id="batch-medicine"
                                     required
+                                    options={medicine_options.length ? medicine_options : medicines}
                                     value={batchForm.medicine_id}
-                                    onChange={(e) => setBatchForm({ ...batchForm, medicine_id: e.target.value })}
-                                    className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
-                                >
-                                    <option value="">Select Medicine</option>
-                                    {(medicine_options.length ? medicine_options : medicines).map((m) => (
-                                        <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
-                                    ))}
-                                </select>
+                                    onChange={(id) => setBatchForm({ ...batchForm, medicine_id: id })}
+                                />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">

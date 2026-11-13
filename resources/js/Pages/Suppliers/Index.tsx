@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import MedicinePicker from '@/Components/MedicinePicker';
 import {
     Truck,
     Plus,
@@ -250,29 +251,33 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                             </div>
 
                             <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-slate-300">Order Items</label>
+                                <span className="block text-xs font-semibold text-slate-300">Order Items</span>
+                                <div className="grid grid-cols-12 gap-2 text-[11px] text-slate-500 font-semibold" aria-hidden>
+                                    <span className="col-span-6">Medicine (type to search)</span>
+                                    <span className="col-span-2">Quantity</span>
+                                    <span className="col-span-3">Unit cost (৳)</span>
+                                </div>
                                 {poForm.items.map((item, idx) => (
-                                    <div key={idx} className="grid grid-cols-12 gap-2">
+                                    <div key={idx} className="grid grid-cols-12 gap-2 items-center">
                                         <div className="col-span-6">
-                                            <select
+                                            <MedicinePicker
                                                 required
+                                                aria-label={`Medicine for item ${idx + 1}`}
+                                                options={medicines}
                                                 value={item.medicine_id}
-                                                onChange={(e) => {
+                                                onChange={(id) => {
                                                     const updated = [...poForm.items];
-                                                    updated[idx].medicine_id = e.target.value;
+                                                    updated[idx] = { ...updated[idx], medicine_id: id };
                                                     setPoForm({ ...poForm, items: updated });
                                                 }}
-                                                className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white"
-                                            >
-                                                <option value="">Select Medicine</option>
-                                                {medicines.map((m) => (
-                                                    <option key={m.id} value={m.id}>{m.name}</option>
-                                                ))}
-                                            </select>
+                                            />
                                         </div>
-                                        <div className="col-span-3">
+                                        <div className="col-span-2">
                                             <input
                                                 type="number"
+                                                min="1"
+                                                required
+                                                aria-label={`Quantity for item ${idx + 1}`}
                                                 placeholder="Qty"
                                                 value={item.quantity_ordered}
                                                 onChange={(e) => {
@@ -287,6 +292,9 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                                             <input
                                                 type="number"
                                                 step="0.01"
+                                                min="0"
+                                                required
+                                                aria-label={`Unit cost for item ${idx + 1}`}
                                                 placeholder="Unit Cost"
                                                 value={item.unit_cost}
                                                 onChange={(e) => {
@@ -296,6 +304,19 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                                                 }}
                                                 className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white"
                                             />
+                                        </div>
+                                        <div className="col-span-1 flex justify-center">
+                                            {poForm.items.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPoForm({ ...poForm, items: poForm.items.filter((_, i) => i !== idx) })}
+                                                    aria-label={`Remove item ${idx + 1}`}
+                                                    title="Remove"
+                                                    className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10"
+                                                >
+                                                    <X className="w-3.5 h-3.5" />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
