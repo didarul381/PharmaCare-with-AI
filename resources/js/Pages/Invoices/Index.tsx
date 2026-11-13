@@ -29,7 +29,7 @@ import {
     QrCode
 } from 'lucide-react';
 import { Sale, StoreSetting, PageProps } from '@/types';
-import { formatCurrency, formatDate, cn } from '@/lib/utils';
+import { formatCurrency, formatDate, formatDateTime, formatTime, cn } from '@/lib/utils';
 
 interface Pagination {
     current_page: number;
@@ -574,8 +574,9 @@ export default function InvoicesIndex({ invoices, pagination, metrics, settings,
                                                 >
                                                     {sale.invoice_number}
                                                 </button>
-                                                <span className="text-[11px] text-slate-400 font-mono block mt-0.5">
+                                                <span className="text-[11px] text-slate-400 font-mono block mt-0.5 whitespace-nowrap">
                                                     {formatDate(sale.created_at)}
+                                                    <span className="text-slate-500"> · {formatTime(sale.created_at)}</span>
                                                 </span>
                                             </td>
 
@@ -777,7 +778,7 @@ export default function InvoicesIndex({ invoices, pagination, metrics, settings,
                                                 TAX INVOICE / CASH MEMO
                                             </span>
                                             <div className="font-mono font-bold text-sm text-slate-950">{viewingInvoice.invoice_number}</div>
-                                            <div className="text-xs text-slate-500 font-mono mt-0.5">{formatDate(viewingInvoice.created_at)}</div>
+                                            <div className="text-xs text-slate-500 font-mono mt-0.5">{formatDateTime(viewingInvoice.created_at)}</div>
                                             {settings.vat_reg_no && (
                                                 <div className="text-xs text-slate-600 font-mono mt-1">{settings.vat_reg_no}</div>
                                             )}
@@ -861,7 +862,7 @@ export default function InvoicesIndex({ invoices, pagination, metrics, settings,
                                                 <span className="font-bold text-slate-800 block">Payment History & Ledger</span>
                                                 {viewingInvoice.payments?.map(p => (
                                                     <div key={p.id} className="flex items-center justify-between text-slate-600 font-mono">
-                                                        <span>{formatDate(p.created_at)} ({p.payment_method.toUpperCase()})</span>
+                                                        <span>{formatDateTime(p.created_at)} ({p.payment_method.toUpperCase()})</span>
                                                         <span className="font-bold text-slate-900">{formatCurrency(p.amount)}</span>
                                                     </div>
                                                 ))}
@@ -947,7 +948,7 @@ export default function InvoicesIndex({ invoices, pagination, metrics, settings,
                                         <div className="py-2 border-b border-dashed border-slate-400 space-y-0.5 text-[11px]">
                                             <div className="flex justify-between">
                                                 <span>INV: <strong>{viewingInvoice.invoice_number}</strong></span>
-                                                <span>{formatDate(viewingInvoice.created_at)}</span>
+                                                <span>{formatDateTime(viewingInvoice.created_at)}</span>
                                             </div>
                                             <div>Cust: {viewingInvoice.customer?.name || 'Walk-in'}</div>
                                             <div>Operator: {viewingInvoice.user?.name || 'Cashier'}</div>
