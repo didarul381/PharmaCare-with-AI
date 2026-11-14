@@ -135,6 +135,10 @@ Route::middleware(['auth', 'active'])->group(function () {
     // Suppliers & Purchase Orders
     Route::prefix('suppliers')->name('suppliers.')->middleware('module:suppliers')->group(function () {
         Route::get('/', [SupplierController::class, 'index'])->name('index');
+        Route::post('/', [SupplierController::class, 'storeSupplier'])->name('store');
+        Route::put('/{supplier}', [SupplierController::class, 'updateSupplier'])->name('update');
+        Route::delete('/{supplier}', [SupplierController::class, 'destroySupplier'])->middleware('demo.block')->name('destroy');
+        Route::patch('/{supplier}/activate', [SupplierController::class, 'activateSupplier'])->name('activate');
         Route::post('/orders', [SupplierController::class, 'storeOrder'])->name('orders.store');
         Route::post('/orders/{order}/receive-grn', [SupplierController::class, 'receiveGRN'])->name('orders.receive-grn');
     });

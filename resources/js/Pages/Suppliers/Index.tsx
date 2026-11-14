@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import MedicinePicker from '@/Components/MedicinePicker';
 import {
@@ -12,9 +12,14 @@ import {
     Clock,
     DollarSign,
     PackageCheck,
-    X
+    X,
+    Pencil,
+    Trash2,
+    RotateCcw,
+    UserPlus,
 } from 'lucide-react';
-import { Supplier, PurchaseOrder, GoodsReceiptNote, Medicine } from '@/types';
+import { Supplier, PurchaseOrder, GoodsReceiptNote, Medicine, PageProps } from '@/types';
+import { confirmDialog } from '@/lib/notify';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
 
 interface Props {
@@ -24,7 +29,73 @@ interface Props {
     medicines: Medicine[];
 }
 
+const EMPTY_SUPPLIER = { name: '', company_code: '', contact_person: '', phone: '', email: '', address: '', tax_registration_number: '' };
+
 export default function SuppliersIndex({ suppliers, purchase_orders, goods_receipt_notes, medicines }: Props) {
+    const { errors } = usePage<PageProps & { errors: Record<string, string> }>().props;
+    const activeSuppliers = suppliers.filter((s) => s.is_active);
+
+    // Supplier add / edit
+    const [supplierModal, setSupplierModal] = useState<'add' | 'edit' | null>(null);
+    const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+    const [supplierForm, setSupplierForm] = useState({ ...EMPTY_SUPPLIER });
+    const [savingSupplier, setSavingSupplier] = useState(false);
+
+    const openAddSupplier = () => {
+        setEditingSupplier(null);
+        setSupplierForm({ ...EMPTY_SUPPLIER });
+        setSupplierModal('add');
+    };
+
+    const openEditSupplier = (s: Supplier) => {
+        setEditingSupplier(s);
+        setSupplierForm({
+            name: s.name ?? '',
+            company_code: s.company_code ?? '',
+            contact_person: s.contact_person ?? '',
+            phone: s.phone ?? '',
+            email: s.email ?? '',
+            address: s.address ?? '',
+            tax_registration_number: s.tax_registration_number ?? '',
+        });
+        setSupplierModal('edit');
+    };
+
+    const saveSupplier = (e: React.FormEvent) => {
+        e.preventDefault();
+        setSavingSupplier(true);
+        const options = {
+            preserveScroll: true,
+            onSuccess: () => setSupplierModal(null),
+            onFinish: () => setSavingSupplier(false),
+        };
+        if (supplierModal === 'edit' && editingSupplier) {
+            router.put(`/suppliers/${editingSupplier.id}`, supplierForm, options);
+        } else {
+            router.post('/suppliers', supplierForm, options);
+        }
+    };
+
+    const deleteSupplier = async (s: Supplier) => {
+        const history = (s.purchase_orders_count ?? 0) + (s.goods_receipt_notes_count ?? 0) > 0;
+        const ok = await confirmDialog(history
+            ? {
+                title: `Deactivate ${s.name}?`,
+                message: `This supplier has purchase history, so it will be deactivated instead of deleted. Past orders stay in your records; it just won't appear in new purchase orders. You can reactivate it any time.`,
+                confirmLabel: 'Deactivate',
+                tone: 'danger',
+            }
+            : {
+                title: `Delete ${s.name}?`,
+                message: 'This supplier has no purchase orders, so it will be removed permanently.',
+                confirmLabel: 'Delete supplier',
+                tone: 'danger',
+            });
+        if (ok) router.delete(`/suppliers/${s.id}`, { preserveScroll: true });
+    };
+
+    const activateSupplier = (s: Supplier) => router.patch(`/suppliers/${s.id}/activate`, {}, { preserveScroll: true });
+
     const [showPoModal, setShowPoModal] = useState(false);
     const [showGrnModal, setShowGrnModal] = useState(false);
     const [selectedPoForGrn, setSelectedPoForGrn] = useState<PurchaseOrder | null>(null);
@@ -123,32 +194,64 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                         </p>
                     </div>
 
-                    <button
-                        onClick={() => setShowPoModal(true)}
-                        className="px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-ink shadow-glow-emerald flex items-center gap-1.5 transition self-start sm:self-auto"
-                    >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Create Purchase Order</span>
-                    </button>
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                        <button
+                            type="button"
+                            onClick={openAddSupplier}
+                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 transition"
+                        >
+                            <UserPlus className="w-3.5 h-3.5" />
+                            <span>Add Supplier</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowPoModal(true)}
+                            disabled={activeSuppliers.length === 0}
+                            title={activeSuppliers.length === 0 ? 'Add a supplier first' : undefined}
+                            className="px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-ink shadow-glow-emerald flex items-center gap-1.5 transition disabled:opacity-50 disabled:pointer-events-none"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Create Purchase Order</span>
+                        </button>
+                    </div>
                 </div>
             }
         >
             <Head title="Suppliers & Purchases" />
 
             {/* Suppliers Grid */}
+            {suppliers.length === 0 && (
+                <div className="glass-panel rounded-2xl border border-slate-800/80 p-10 text-center mb-6 sm:mb-8">
+                    <Truck className="w-10 h-10 mx-auto text-slate-600" />
+                    <p className="mt-3 font-semibold text-white">No suppliers yet</p>
+                    <p className="text-sm text-slate-400 mt-1">Add the companies or distributors you buy from to create purchase orders.</p>
+                    <button
+                        type="button"
+                        onClick={openAddSupplier}
+                        className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-ink"
+                    >
+                        <UserPlus className="w-4 h-4" /> Add your first supplier
+                    </button>
+                </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
                 {suppliers.map((s) => (
-                    <div key={s.id} className="glass-panel rounded-2xl p-4 border border-slate-800/80 flex flex-col justify-between">
+                    <div key={s.id} className={cn('glass-panel rounded-2xl p-4 border border-slate-800/80 flex flex-col justify-between', !s.is_active && 'opacity-60')}>
                         <div>
                             <div className="flex items-center justify-between mb-2">
                                 <span className="font-mono text-xs text-cyan-300 font-bold">{s.company_code}</span>
-                                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
-                                    Active Vendor
-                                </span>
+                                {s.is_active ? (
+                                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">Active</span>
+                                ) : (
+                                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">Inactive</span>
+                                )}
                             </div>
                             <h3 className="font-bold text-white text-sm">{s.name}</h3>
-                            <p className="text-xs text-slate-400">{s.contact_person} | {s.phone}</p>
-                            <p className="text-xs text-slate-500 mt-1 truncate">{s.address}</p>
+                            {(s.contact_person || s.phone) && (
+                                <p className="text-xs text-slate-400">{[s.contact_person, s.phone].filter(Boolean).join(' | ')}</p>
+                            )}
+                            {s.email && <p className="text-xs text-slate-500 truncate">{s.email}</p>}
+                            {s.address && <p className="text-xs text-slate-500 mt-1 truncate" title={s.address}>{s.address}</p>}
                         </div>
 
                         <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
@@ -160,6 +263,37 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                                 <span className="text-[11px] text-slate-500 block">Total Paid</span>
                                 <span className="font-bold text-emerald-400">{formatCurrency(s.total_paid)}</span>
                             </div>
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-end gap-1.5">
+                            {s.is_active ? (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => openEditSupplier(s)}
+                                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1"
+                                    >
+                                        <Pencil className="w-3.5 h-3.5" /> Edit
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => deleteSupplier(s)}
+                                        aria-label={`Delete ${s.name}`}
+                                        title="Delete supplier"
+                                        className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                </>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => activateSupplier(s)}
+                                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 flex items-center gap-1"
+                                >
+                                    <RotateCcw className="w-3.5 h-3.5" /> Reactivate
+                                </button>
+                            )}
                         </div>
                     </div>
                 ))}
@@ -244,7 +378,7 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                                     className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
                                 >
                                     <option value="">Select Supplier</option>
-                                    {suppliers.map((s) => (
+                                    {activeSuppliers.map((s) => (
                                         <option key={s.id} value={s.id}>{s.name} ({s.company_code})</option>
                                     ))}
                                 </select>
@@ -425,6 +559,127 @@ export default function SuppliersIndex({ suppliers, purchase_orders, goods_recei
                                     className="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-ink"
                                 >
                                     Verify & Add Batches to Vault
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {/* Modal: Add / Edit Supplier */}
+            {supplierModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onMouseDown={(e) => e.target === e.currentTarget && setSupplierModal(null)}>
+                    <div role="dialog" aria-modal="true" aria-labelledby="supplier-modal-title" className="w-full max-w-lg rounded-3xl border border-slate-800 bg-panel p-6 shadow-glass max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                            <h3 id="supplier-modal-title" className="text-base font-bold text-white flex items-center gap-2">
+                                {supplierModal === 'edit' ? <Pencil className="w-4 h-4 text-emerald-400" /> : <UserPlus className="w-4 h-4 text-emerald-400" />}
+                                {supplierModal === 'edit' ? 'Edit supplier' : 'Add supplier'}
+                            </h3>
+                            <button type="button" onClick={() => setSupplierModal(null)} aria-label="Close" className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={saveSupplier} className="mt-4 space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="sm:col-span-2">
+                                    <label htmlFor="supplier-name" className="block text-xs font-semibold text-slate-300 mb-1">Supplier / company name *</label>
+                                    <input
+                                        id="supplier-name"
+                                        type="text"
+                                        required
+                                        value={supplierForm.name}
+                                        onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
+                                        placeholder="e.g. Rahman Pharma Distribution"
+                                        aria-invalid={Boolean(errors?.name)}
+                                        className="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                    />
+                                    {errors?.name && <p className="mt-1 text-xs text-rose-400">{errors.name}</p>}
+                                </div>
+                                <div>
+                                    <label htmlFor="supplier-company_code" className="block text-xs font-semibold text-slate-300 mb-1">Code</label>
+                                    <input
+                                        id="supplier-company_code"
+                                        type="text"
+                                        value={supplierForm.company_code}
+                                        onChange={(e) => setSupplierForm({ ...supplierForm, company_code: e.target.value })}
+                                        placeholder="e.g. RPD-001"
+                                        aria-invalid={Boolean(errors?.company_code)}
+                                        className="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                    />
+                                    {errors?.company_code && <p className="mt-1 text-xs text-rose-400">{errors.company_code}</p>}
+                                    {!errors?.company_code && <p className="mt-1 text-[11px] text-slate-500">Leave empty to create one automatically.</p>}
+                                </div>
+                                <div>
+                                    <label htmlFor="supplier-contact_person" className="block text-xs font-semibold text-slate-300 mb-1">Contact person</label>
+                                    <input
+                                        id="supplier-contact_person"
+                                        type="text"
+                                        value={supplierForm.contact_person}
+                                        onChange={(e) => setSupplierForm({ ...supplierForm, contact_person: e.target.value })}
+                                        placeholder="e.g. Md. Karim"
+                                        aria-invalid={Boolean(errors?.contact_person)}
+                                        className="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                    />
+                                    {errors?.contact_person && <p className="mt-1 text-xs text-rose-400">{errors.contact_person}</p>}
+                                </div>
+                                <div>
+                                    <label htmlFor="supplier-phone" className="block text-xs font-semibold text-slate-300 mb-1">Phone</label>
+                                    <input
+                                        id="supplier-phone"
+                                        type="tel"
+                                        value={supplierForm.phone}
+                                        onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
+                                        placeholder="e.g. 01711-000000"
+                                        aria-invalid={Boolean(errors?.phone)}
+                                        className="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                    />
+                                    {errors?.phone && <p className="mt-1 text-xs text-rose-400">{errors.phone}</p>}
+                                </div>
+                                <div>
+                                    <label htmlFor="supplier-email" className="block text-xs font-semibold text-slate-300 mb-1">Email</label>
+                                    <input
+                                        id="supplier-email"
+                                        type="email"
+                                        value={supplierForm.email}
+                                        onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })}
+                                        placeholder="orders@example.com"
+                                        aria-invalid={Boolean(errors?.email)}
+                                        className="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                    />
+                                    {errors?.email && <p className="mt-1 text-xs text-rose-400">{errors.email}</p>}
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <label htmlFor="supplier-address" className="block text-xs font-semibold text-slate-300 mb-1">Address</label>
+                                    <textarea
+                                        id="supplier-address"
+                                        rows={2}
+                                        value={supplierForm.address}
+                                        onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })}
+                                        aria-invalid={Boolean(errors?.address)}
+                                        className="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                    />
+                                    {errors?.address && <p className="mt-1 text-xs text-rose-400">{errors.address}</p>}
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <label htmlFor="supplier-tax_registration_number" className="block text-xs font-semibold text-slate-300 mb-1">BIN / TIN</label>
+                                    <input
+                                        id="supplier-tax_registration_number"
+                                        type="text"
+                                        value={supplierForm.tax_registration_number}
+                                        onChange={(e) => setSupplierForm({ ...supplierForm, tax_registration_number: e.target.value })}
+                                        aria-invalid={Boolean(errors?.tax_registration_number)}
+                                        className="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                    />
+                                    {errors?.tax_registration_number && <p className="mt-1 text-xs text-rose-400">{errors.tax_registration_number}</p>}
+                                </div>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">
+                                <button type="button" onClick={() => setSupplierModal(null)} className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800">
+                                    Cancel
+                                </button>
+                                <button type="submit" disabled={savingSupplier} className="px-4 py-2 rounded-xl text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-ink disabled:opacity-60">
+                                    {savingSupplier ? 'Saving…' : supplierModal === 'edit' ? 'Save changes' : 'Add supplier'}
                                 </button>
                             </div>
                         </form>

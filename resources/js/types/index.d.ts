@@ -294,6 +294,8 @@ export interface Supplier {
     total_payable: number | string;
     total_paid: number | string;
     is_active: boolean;
+    purchase_orders_count?: number;
+    goods_receipt_notes_count?: number;
 }
 
 export interface PurchaseOrderItem {

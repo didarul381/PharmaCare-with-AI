@@ -44,7 +44,7 @@ run('npm run build');
 const include = (src) => {
     const r = rel(src);
     if (EXCLUDE.some((e) => r === e || r.startsWith(e + '/'))) return false;
-    if (/\.(sqlite|sqlite3|log)$/.test(r)) return false;
+    if (/\.(sqlite|sqlite3|log|sql|gz|zip)$/i.test(r)) return false; // never ship DB dumps or archives
     for (const dir of EMPTY_DIRS) {
         if (r.startsWith(dir + '/') && !KEEP_IN_EMPTY.includes(path.basename(r))) return false;
     }

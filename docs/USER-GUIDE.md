@@ -55,7 +55,9 @@ The catalogue lists every medicine registered with DGDA in Bangladesh (~39,000) 
 ## Suppliers and purchases
 *Inventory Manager, Pharmacist, Super Admin* → **Suppliers & Purchases**
 
-Create a purchase order for a supplier, then **Receive** it when the goods arrive — batches and stock are created from the receipt.
+- **Add Supplier** — name (required), code (left empty = created automatically), contact person, phone, email, address, BIN/TIN. **Edit** on a supplier card changes the details.
+- **Delete** (bin icon) removes a supplier with no purchase history. A supplier that already has purchase orders is **deactivated** instead — past orders stay, it no longer appears in new orders, and **Reactivate** brings it back.
+- **Create Purchase Order** for an active supplier, then **Receive GRN** when the goods arrive — batches and stock are created from the receipt. Check the batch number and expiry against the pack before saving.
 
 ## Prescriptions
 *Pharmacist, Super Admin* → **Prescriptions**

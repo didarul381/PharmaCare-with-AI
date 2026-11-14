@@ -5,6 +5,8 @@
 First commercial release.
 
 ### Added
+- Supplier management: add, edit, delete (suppliers with purchase history are deactivated instead, and can be reactivated); new purchase orders accept active suppliers only.
+- Searchable medicine picker for purchase orders and Add Batch; invoice list, invoice view and receipts show the time of sale.
 - DGDA national medicine catalogue (~39,000 registered products from the DGHS terminology server): one-time download with progress bar or `php artisan pharmacare:sync-dgda`, monthly auto-refresh, search/filter by company and form, bulk “add to inventory” with duplicate protection, and **+ Stock** shortcuts for new medicines.
 - Inventory pagination (medicines and batches) and a Stock filter (in stock / no stock).
 - Light, dark and system themes with a toggle in the header, sign-in page and user menu; preference remembered per device.

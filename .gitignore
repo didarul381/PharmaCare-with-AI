@@ -28,3 +28,8 @@ Thumbs.db
 
 # Packaged buyer releases (scripts/package-release.cjs)
 /release
+
+# Database dumps and archives must never be committed or shipped
+*.sql
+*.sql.gz
+*.zip
